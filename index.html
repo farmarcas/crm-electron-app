@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Electron Exemplo</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        margin: 0;
+        padding: 32px;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+
+      .card {
+        max-width: 520px;
+        padding: 24px;
+        background: #1e293b;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.45);
+      }
+
+      h1 {
+        margin: 0 0 16px;
+        font-size: 28px;
+      }
+
+      ul {
+        padding-left: 20px;
+        margin: 12px 0 0;
+        line-height: 1.8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>App Electron de Exemplo</h1>
+      <p>Informações do ambiente:</p>
+      <ul>
+        <li id="platform">Plataforma: carregando...</li>
+        <li id="node">Node: carregando...</li>
+        <li id="chrome">Chrome: carregando...</li>
+        <li id="electron">Electron: carregando...</li>
+      </ul>
+    </div>
+    <script>
+      const info = window.appInfo;
+      if (info) {
+        document.getElementById("platform").textContent = `Plataforma: ${info.platform}`;
+        document.getElementById("node").textContent = `Node: ${info.node}`;
+        document.getElementById("chrome").textContent = `Chrome: ${info.chrome}`;
+        document.getElementById("electron").textContent = `Electron: ${info.electron}`;
+      }
+    </script>
+  </body>
+</html>

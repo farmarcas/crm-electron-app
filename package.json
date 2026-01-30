@@ -1,0 +1,37 @@
+{
+  "name": "electron-test",
+  "version": "1.0.0",
+  "description": "Exemplo simples de app Electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^26.4.0"
+  },
+  "build": {
+    "appId": "com.example.electron-test",
+    "productName": "ElectronTest",
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "signAndEditExecutable": false
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "package.json"
+    ]
+  }
+}
