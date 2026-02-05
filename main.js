@@ -1,7 +1,7 @@
 const { app, BrowserWindow, screen, Tray, Menu, nativeImage } = require("electron");
 const path = require("path");
 
-const SUGGESTIONS_URL = "https://sugere-pdv-rapido.base44.app";
+const SUGGESTIONS_URL = "http://crm-frontend-website-hmg.s3-website-us-east-1.amazonaws.com";
 let mainWindow;
 let tray;
 
