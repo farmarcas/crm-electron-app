@@ -27,5 +27,4 @@ Aplicação Electron com janela lateral fixa no lado direito do monitor, carrega
 ## Estrutura de arquivos
 - `main.js`: processo principal e configuração da janela.
 - `preload.js`: bridge segura com o renderer.
-- `index.html`: recurso local usado no desenvolvimento inicial.
 - `package.json`: scripts e configuração do `electron-builder`.
