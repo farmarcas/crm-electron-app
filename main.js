@@ -2,7 +2,7 @@ const { app, BrowserWindow, screen, Tray, Menu, nativeImage } = require("electro
 const path = require("path");
 const zlib = require("zlib");
 
-const SUGGESTIONS_URL = "https://d3fy9jliu21m34.cloudfront.net/";
+const SUGGESTIONS_URL = "https://develop.dmpdjw0btm4j5.amplifyapp.com/";
 let mainWindow;
 let tray;
 
