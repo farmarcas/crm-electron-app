@@ -6,8 +6,11 @@ App Electron de exemplo com janela lateral de 400px posicionada no lado direito 
 ## Comandos básicos
 - Instalar dependências: `npm install`
 - Iniciar o app: `npm run start`
+- Build padrão: `npm run build`
 - Gerar build Windows: `npm run dist:win`
 - Gerar build macOS: `npm run dist:mac`
+- Lint: `npm run lint`
+- Testes: `npm run test`
 
 Os artefatos são gerados em `dist/`.
 

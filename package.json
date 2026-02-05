@@ -5,8 +5,11 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "build": "electron-builder",
     "dist:win": "electron-builder --win",
-    "dist:mac": "electron-builder --mac"
+    "dist:mac": "electron-builder --mac",
+    "lint": "node -e \"console.log('Lint não configurado')\"",
+    "test": "node -e \"console.log('Testes não configurados')\""
   },
   "devDependencies": {
     "electron": "^31.0.0",
