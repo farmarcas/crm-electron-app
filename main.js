@@ -21,6 +21,7 @@ const createWindow = () => {
   });
 
   mainWindow.loadURL(SUGGESTIONS_URL);
+  mainWindow.setMenu(null);
 
   mainWindow.on("close", (event) => {
     if (!app.isQuiting) {
