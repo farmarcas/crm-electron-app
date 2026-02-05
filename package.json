@@ -1,5 +1,5 @@
 {
-  "name": "electron-test",
+  "name": "crm-electron-app",
   "version": "1.0.0",
   "description": "Exemplo simples de app Electron",
   "main": "main.js",
@@ -13,8 +13,8 @@
     "electron-builder": "^26.4.0"
   },
   "build": {
-    "appId": "com.example.electron-test",
-    "productName": "ElectronTest",
+    "appId": "com.example.crm-electron-app",
+    "productName": "CRMElectronApp",
     "win": {
       "target": [
         "portable"
