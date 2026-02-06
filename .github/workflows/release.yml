@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "*"
+      - "*.*.*"
 
 permissions:
   contents: write
@@ -29,6 +29,12 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Sync version with tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          npm version "$VERSION" --no-git-tag-version
       - run: npm run lint
       - run: npm run test
       - run: npm run ${{ matrix.build }} -- --publish=never
