@@ -45,9 +45,9 @@ jobs:
           name: ${{ matrix.os }}-artifacts
           path: |
             dist/**/*.dmg
-            dist/**/*.zip
             dist/**/*.exe
-            dist/**/*.AppImage
+            dist/**/*.deb
+            dist/**/*.rpm
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
@@ -62,6 +62,6 @@ jobs:
         with:
           files: |
             dist/**/*.dmg
-            dist/**/*.zip
             dist/**/*.exe
-            dist/**/*.AppImage
+            dist/**/*.deb
+            dist/**/*.rpm

@@ -1,7 +1,8 @@
 {
   "name": "crm-electron-app",
-  "version": "1.0.0",
-  "description": "Exemplo simples de app Electron",
+  "version": "0.0.0",
+  "description": "App de Recomendações de Produtos",
+  "author": "CRM Team Farmarcas <uelinton.martins@terceirizados.farmarcas.com.br>",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -17,8 +18,8 @@
     "electron-builder": "^26.4.0"
   },
   "build": {
-    "appId": "com.example.crm-electron-app",
-    "productName": "CRMElectronApp",
+    "appId": "br.com.farmarcas.crm-electron-app",
+    "productName": "Sugestão de Produtos",
     "win": {
       "target": [
         "portable"
@@ -27,13 +28,13 @@
     },
     "mac": {
       "target": [
-        "dmg",
-        "zip"
+        "dmg"
       ]
     },
     "linux": {
       "target": [
-        "AppImage"
+        "deb",
+        "rpm"
       ]
     },
     "files": [
