@@ -8,6 +8,7 @@
     "build": "electron-builder",
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux",
     "lint": "node -e \"console.log('Lint não configurado')\"",
     "test": "node -e \"console.log('Testes não configurados')\""
   },
@@ -28,6 +29,11 @@
       "target": [
         "dmg",
         "zip"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
       ]
     },
     "files": [
