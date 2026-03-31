@@ -1,6 +1,10 @@
 const { app, BrowserWindow, screen, Tray, Menu, nativeImage } = require("electron");
+const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
+
+const APP_AUTOSTART_ID = "br.com.farmarcas.crm-electron-app";
+const PRODUCT_DISPLAY_NAME = "CRM Radar";
 
 const SUGGESTIONS_URL = "https://develop.dmpdjw0btm4j5.amplifyapp.com/";
 let mainWindow;
@@ -179,7 +183,48 @@ const createTray = () => {
   tray.setContextMenu(contextMenu);
 };
 
+const configureOpenAtLogin = () => {
+  if (process.platform === "linux") {
+    if (!app.isPackaged) {
+      return;
+    }
+    try {
+      const autostartDir = path.join(app.getPath("home"), ".config", "autostart");
+      const desktopPath = path.join(autostartDir, `${APP_AUTOSTART_ID}.desktop`);
+      const execPath = process.execPath;
+      const execField =
+        /[\s"'\\]/.test(execPath) ? `"${execPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"` : execPath;
+      if (!fs.existsSync(autostartDir)) {
+        fs.mkdirSync(autostartDir, { recursive: true });
+      }
+      const desktop = [
+        "[Desktop Entry]",
+        "Type=Application",
+        "Version=1.0",
+        `Name=${PRODUCT_DISPLAY_NAME}`,
+        `Exec=${execField}`,
+        "Terminal=false",
+        "NoDisplay=false",
+        "X-GNOME-Autostart-enabled=true"
+      ].join("\n");
+      fs.writeFileSync(desktopPath, `${desktop}\n`, "utf8");
+    } catch (err) {
+      console.error("Autostart Linux (XDG):", err.message);
+    }
+    return;
+  }
+
+  if (process.platform === "darwin" || process.platform === "win32") {
+    try {
+      app.setLoginItemSettings({ openAtLogin: true });
+    } catch (err) {
+      console.error("setLoginItemSettings:", err.message);
+    }
+  }
+};
+
 app.whenReady().then(() => {
+  configureOpenAtLogin();
   createWindow();
   createTray();
 
