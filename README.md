@@ -25,3 +25,6 @@ Os artefatos são gerados em `dist/`.
 ### Arquitetura
 
 [Base Arquitetural](docs/ARCHITECTURE.md#base-arquitetural)
+
+### Testes
+- [SO - Inicializar Automaticamente](docs/teste-autostart.md)

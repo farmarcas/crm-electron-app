@@ -19,7 +19,7 @@
   },
   "build": {
     "appId": "br.com.farmarcas.crm-electron-app",
-    "productName": "Sugestão de Produtos",
+    "productName": "CRM Radar",
     "win": {
       "target": [
         "portable"
@@ -32,9 +32,16 @@
       ]
     },
     "linux": {
+      "executableName": "crm-electron-app",
       "target": [
         "deb",
         "rpm"
+      ],
+      "extraFiles": [
+        {
+          "from": "scripts/linux-install-autostart.sh",
+          "to": "linux-install-autostart.sh"
+        }
       ]
     },
     "files": [
