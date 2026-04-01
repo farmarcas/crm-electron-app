@@ -126,6 +126,7 @@ const createWindow = () => {
     height: workArea.height,
     x: workArea.x + workArea.width - panelWidth,
     y: workArea.y,
+    icon: path.join(__dirname, "assets/icon.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -227,6 +228,9 @@ app.whenReady().then(() => {
   configureOpenAtLogin();
   createWindow();
   createTray();
+  if (process.platform === "darwin") {
+    app.dock.setIcon(path.join(__dirname, "assets/icon"));
+  }
 
   app.on("activate", () => {
     if (!mainWindow) {

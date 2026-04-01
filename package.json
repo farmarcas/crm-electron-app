@@ -24,19 +24,22 @@
       "target": [
         "portable"
       ],
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "icon": "assets/icon.ico"
     },
     "mac": {
       "target": [
         "dmg"
-      ]
+      ],
+      "icon": "assets/icon.icns"
     },
     "linux": {
-      "executableName": "crm-electron-app",
+      "executableName": "CRM Radar",
       "target": [
         "deb",
         "rpm"
       ],
+      "icon": "assets/icon.png",
       "extraFiles": [
         {
           "from": "scripts/linux-install-autostart.sh",
@@ -47,7 +50,8 @@
     "files": [
       "main.js",
       "preload.js",
-      "package.json"
+      "package.json",
+      "assets/**/*"
     ]
   }
 }
