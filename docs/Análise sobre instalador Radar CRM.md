@@ -70,68 +70,70 @@ Se for necessário manter também o `.exe` portátil para distribuição avulsa:
 
 ## 2. Assinatura de código
 
-Sem assinatura, o **Windows SmartScreen exibe um aviso de bloqueio** a cada instalação. Não há como contornar isso para distribuição ampla sem um certificado válido.
+Sem assinatura, o **Windows SmartScreen exibe um aviso de bloqueio** a cada instalação. O CRM Radar é distribuído para PCs de farmácias parceiras da Farmarcas — máquinas sem AD centralizado — o que limita as opções sem custo.
 
 ### Comparativo de opções
 
-| Opção | Custo estimado | SmartScreen | Observação |
+| Opção | Custo | SmartScreen | Observação |
 |---|---|---|---|
+| **Self-signed + GitHub Secrets** | Grátis | Aviso permanente — usuário clica para prosseguir | Assina o executável, evita "publisher unknown" no UAC |
+| **OV Certificate** (SSL.com, Sectigo) | ~R$ 800–1.500/ano | Constrói reputação gradualmente | Após N downloads sem reports, aviso some |
 | **EV Certificate** (DigiCert, Sectigo) | ~R$ 2.000–4.000/ano | Confiança imediata | Requer token USB físico ou HSM cloud |
-| **OV Certificate** (DigiCert, Sectigo) | ~R$ 800–1.500/ano | Constrói reputação gradualmente | Certificado em arquivo `.pfx`, mais simples |
-| **Azure Trusted Signing** | ~US$ 9/mês | Confiança imediata (Microsoft) | Sem HSM físico, integra nativamente com `electron-builder` |
-| **Self-signed + GPO** | Grátis | Bloqueado externamente | Viável apenas se todos os PCs estiverem no domínio AD da Farmarcas |
 
-**Recomendação:** para distribuição interna corporativa via domínio AD, o certificado self-signed com GPO é suficiente e tem custo zero. Para distribuição externa ou sem controle de domínio, o **Azure Trusted Signing** é o melhor custo-benefício.
+**Recomendação:** o self-signed com GitHub Secrets é viável se a instalação for feita por um responsável de TI nas farmácias (o aviso é clicável, não um bloqueio total). Se o instalador chega diretamente ao usuário final sem suporte, o OV Certificate é o próximo passo mais barato.
 
-### Configuração no CI — certificado OV/EV (`.pfx`)
+> O self-signed não elimina o SmartScreen porque não há AD para distribuir a confiança do certificado via GPO. O benefício real é: o Windows exibe o nome "Farmarcas" no UAC em vez de "Editor desconhecido", e o executável tem integridade verificável (não foi adulterado). Com o tempo e volume de downloads do mesmo hash assinado, o SmartScreen pode construir reputação automaticamente.
 
-1. Exportar o certificado como `.pfx` e converter para base64:
-   ```bash
-   base64 -i certificado.pfx | tr -d '\n'
-   ```
-2. Adicionar dois secrets no repositório GitHub (`Settings → Secrets → Actions`):
-   - `WIN_CSC_LINK` — conteúdo base64 do `.pfx`
-   - `WIN_CSC_PASSWORD` — senha do `.pfx`
+### Configuração com self-signed + GitHub Secrets (custo zero)
 
-3. No job `build` do `.github/workflows/release.yml`, adicionar as variáveis de ambiente:
-   ```yaml
-   env:
-     CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-     CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_PASSWORD }}
-   ```
-   E remover a linha `CSC_IDENTITY_AUTO_DISCOVERY: "false"`.
+**a) Gerar o certificado uma única vez (Windows, PowerShell)**
 
-### Configuração no CI — Azure Trusted Signing
+```powershell
+# Gera o certificado
+$cert = New-SelfSignedCertificate `
+  -Type CodeSigningCert `
+  -Subject "CN=CRM Radar, O=Farmarcas" `
+  -KeyExportPolicy Exportable `
+  -NotAfter (Get-Date).AddYears(3) `
+  -CertStoreLocation Cert:\CurrentUser\My
 
-1. Instalar o plugin:
-   ```bash
-   npm install --save-dev @electron/windows-sign
-   ```
+# Exporta como .pfx (guarde o arquivo e a senha com segurança)
+$pwd = ConvertTo-SecureString -String "senha-forte-aqui" -Force -AsPlainText
+Export-PfxCertificate -Cert $cert -FilePath crm-radar.pfx -Password $pwd
 
-2. Adicionar ao `package.json` dentro de `"win"`:
-   ```json
-   "sign": "./sign-windows.js"
-   ```
+# Converte para base64 (copiar para o GitHub Secret)
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("crm-radar.pfx")) | clip
+```
 
-3. Criar o arquivo `sign-windows.js` na raiz:
-   ```js
-   const { sign } = require("@electron/windows-sign");
-   module.exports = async (config) => {
-     if (!process.env.AZURE_CLIENT_ID) return;
-     await sign({ ...config });
-   };
-   ```
+**b) Adicionar os secrets no repositório GitHub**
 
-4. Adicionar os secrets no GitHub e referenciá-los no CI:
-   ```yaml
-   env:
-     AZURE_TENANT_ID:                  ${{ secrets.AZURE_TENANT_ID }}
-     AZURE_CLIENT_ID:                  ${{ secrets.AZURE_CLIENT_ID }}
-     AZURE_CLIENT_SECRET:              ${{ secrets.AZURE_CLIENT_SECRET }}
-     AZURE_CODE_SIGNING_ACCOUNT_NAME:  ${{ secrets.ACS_ACCOUNT }}
-     AZURE_CODE_SIGNING_ENDPOINT:      ${{ secrets.ACS_ENDPOINT }}
-     AZURE_CODE_SIGNING_CERT_PROFILE:  ${{ secrets.ACS_PROFILE }}
-   ```
+`Settings → Secrets and variables → Actions → New repository secret`
+
+| Secret | Valor |
+|---|---|
+| `WIN_CSC_LINK` | base64 do `.pfx` (copiado no passo anterior) |
+| `WIN_CSC_PASSWORD` | senha definida no passo anterior |
+
+**c) Configurar o CI**
+
+No job de build do `.github/workflows/release.yml`:
+
+```yaml
+- name: Build
+  run: npm run dist:win -- --publish=always
+  env:
+    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+    CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_PASSWORD }}
+```
+
+O `electron-builder` detecta automaticamente as variáveis `CSC_LINK` e `CSC_KEY_PASSWORD` e assina o executável sem configuração adicional.
+
+### Migração futura para OV Certificate
+
+Quando for adquirido um OV Certificate, o processo é idêntico: exportar o `.pfx` fornecido pela CA, converter para base64, atualizar os dois secrets no GitHub. Nenhuma alteração no CI ou no `package.json` é necessária.
+
+> O certificado self-signed tem validade de 3 anos (conforme gerado acima). Ao expirar, repetir o passo (a) e atualizar os secrets.
 
 ---
 
@@ -237,9 +239,9 @@ rm -rf icon.iconset
 
 - [ ] Alterar `win.target` de `portable` para `nsis` no `package.json`
 - [ ] Adicionar configuração `nsis` no `package.json`
-- [ ] Decidir e adquirir o tipo de certificado (OV, EV ou Azure Trusted Signing)
-- [ ] Adicionar secrets `WIN_CSC_LINK` e `WIN_CSC_PASSWORD` (ou equivalentes Azure) no GitHub
-- [ ] Atualizar o step de build no CI com as variáveis de assinatura
+- [ ] Gerar certificado self-signed (PowerShell, Windows) e exportar como `.pfx`
+- [ ] Adicionar secrets `WIN_CSC_LINK` (base64 do `.pfx`) e `WIN_CSC_PASSWORD` no GitHub
+- [ ] Atualizar o step de build no CI com `CSC_LINK`, `CSC_KEY_PASSWORD` e `GH_TOKEN`
 - [ ] Executar `npm install electron-updater`
 - [ ] Adicionar `publish` no `package.json`
 - [ ] Implementar `autoUpdater.checkForUpdatesAndNotify()` em `main.js`
@@ -247,3 +249,5 @@ rm -rf icon.iconset
 - [ ] Criar `assets/icon.icns` para o build macOS
 - [ ] Criar `LICENSE.txt` na raiz (se quiser exibir no instalador)
 - [ ] Definir versão inicial em `package.json` (ex: `1.0.0`)
+
+> **Decisão futura:** avaliar a compra de um OV Certificate quando o volume de instalações justificar — elimina o aviso do SmartScreen sem nenhuma mudança no CI.
