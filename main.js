@@ -154,7 +154,8 @@ const createWindow = () => {
 };
 
 const createTray = () => {
-  const image = nativeImage.createFromPath(ICON_PATHS.png16);
+  const trayIconPath = process.platform === "win32" ? ICON_PATHS.ico : ICON_PATHS.png16;
+  const image = nativeImage.createFromPath(trayIconPath);
   tray = new Tray(image);
   tray.setToolTip("Sugestões");
   tray.on("click", () => {
