@@ -1,4 +1,5 @@
 const { app, BrowserWindow, screen, Tray, Menu, nativeImage } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
@@ -233,6 +234,9 @@ app.whenReady().then(() => {
   configureOpenAtLogin();
   createWindow();
   createTray();
+  if (app.isPackaged) {
+    autoUpdater.checkForUpdatesAndNotify();
+  }
   if (process.platform === "darwin") {
     try {
       app.dock.setIcon(nativeImage.createFromPath(ICON_PATHS.png));

@@ -1,6 +1,6 @@
 {
   "name": "crm-electron-app",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "App de Recomendações de Produtos",
   "author": "CRM Team Farmarcas <uelinton.martins@terceirizados.farmarcas.com.br>",
   "main": "main.js",
@@ -22,10 +22,32 @@
     "productName": "CRM Radar",
     "win": {
       "target": [
-        "portable"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
-      "signAndEditExecutable": false,
-      "icon": "assets/icon.ico"
+      "signAndEditExecutable": true,
+      "icon": "assets/icon.ico",
+      "artifactName": "CRM-Radar-Setup-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CRM Radar",
+      "uninstallDisplayName": "CRM Radar",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "license": "LICENSE.txt"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "farmarcas",
+      "repo": "crm-electron-app"
     },
     "mac": {
       "target": [
@@ -53,5 +75,8 @@
       "package.json",
       "assets/**/*"
     ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3"
   }
 }

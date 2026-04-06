@@ -1,0 +1,4 @@
+Copyright (c) 2024 Farmarcas
+
+Este software é de uso interno e exclusivo da Farmarcas e suas farmácias parceiras.
+É proibida a reprodução, distribuição ou modificação sem autorização expressa.
