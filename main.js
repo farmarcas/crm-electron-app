@@ -269,9 +269,11 @@ app.whenReady().then(() => {
     autoUpdater.on("update-not-available", (info) =>
       autoUpdater.logger.info("updater: app já está na versão mais recente", info.version)
     );
-    autoUpdater.on("download-progress", (p) =>
-      autoUpdater.logger.info(`updater: baixando ${Math.round(p.percent)}%`)
-    );
+    autoUpdater.on("download-progress", (p) => {
+      const pct = Math.round(p.percent);
+      autoUpdater.logger.info(`updater: baixando ${pct}%`);
+      if (mainWindow) mainWindow.webContents.send("download-progress", pct);
+    });
     autoUpdater.on("update-downloaded", (info) => {
       autoUpdater.logger.info("updater: download concluído, versão", info.version);
       if (mainWindow) mainWindow.webContents.send("update-downloaded", info.version);
