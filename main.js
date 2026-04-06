@@ -249,6 +249,7 @@ app.whenReady().then(() => {
   if (app.isPackaged) {
     autoUpdater.logger = require("electron-log");
     autoUpdater.logger.transports.file.level = "info";
+    autoUpdater.verifyUpdateCodeSignature = () => null;
 
     autoUpdater.on("checking-for-update", () =>
       autoUpdater.logger.info("updater: verificando atualização...")
