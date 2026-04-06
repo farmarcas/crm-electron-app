@@ -1,6 +1,6 @@
 {
   "name": "crm-electron-app",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "App de Recomendações de Produtos",
   "author": "CRM Team Farmarcas <uelinton.martins@terceirizados.farmarcas.com.br>",
   "main": "main.js",
@@ -74,10 +74,13 @@
       "main.js",
       "preload.js",
       "package.json",
-      "assets/**/*"
+      "assets/**/*",
+      "node_modules/electron-log/**/*",
+      "node_modules/electron-updater/**/*"
     ]
   },
   "dependencies": {
+    "electron-log": "^5.4.3",
     "electron-updater": "^6.8.3"
   }
 }
