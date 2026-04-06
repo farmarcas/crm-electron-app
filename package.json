@@ -1,6 +1,6 @@
 {
   "name": "crm-electron-app",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "App de Recomendações de Produtos",
   "author": "CRM Team Farmarcas <uelinton.martins@terceirizados.farmarcas.com.br>",
   "main": "main.js",

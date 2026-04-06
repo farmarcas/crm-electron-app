@@ -135,6 +135,7 @@ const createWindow = () => {
     height: workArea.height,
     x: workArea.x + workArea.width - panelWidth,
     y: workArea.y,
+    title: `${PRODUCT_DISPLAY_NAME} v${app.getVersion()}`,
     icon: windowIcon,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
