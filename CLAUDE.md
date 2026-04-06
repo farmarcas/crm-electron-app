@@ -41,7 +41,11 @@ This is a minimal Electron app that renders an external URL (`SUGGESTIONS_URL` i
 Tags must use the `v` prefix (e.g. `v1.2.3`). The CI workflow triggers only on `v*.*.*` tags.
 
 ```bash
-npm version patch --no-git-tag-version   # bumps package.json only, no git tag
+npm version patch --no-git-tag-version   # 0.0.10 → 0.0.11  (correção)
+npm version minor --no-git-tag-version   # 0.0.10 → 0.1.0   (funcionalidade nova)
+npm version major --no-git-tag-version   # 0.0.10 → 1.0.0   (mudança incompatível)
+# Ou defina diretamente:
+npm version 1.0.1 --no-git-tag-version   # versão específica
 git add package.json package-lock.json
 git commit -m "chore: bump version to $(node -p "require('./package.json').version")"
 git tag v$(node -p "require('./package.json').version")

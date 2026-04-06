@@ -34,9 +34,12 @@ Os artefatos são gerados em `dist/`.
 O pipeline de release é disparado automaticamente ao criar uma tag com prefixo `v`.
 
 ```bash
-# 1. Atualize a versão no package.json
-npm version patch --no-git-tag-version   # ou minor / major
-# ex: 0.0.9 → 0.0.10
+# 1. Escolha o tipo de incremento:
+npm version patch --no-git-tag-version   # 0.0.10 → 0.0.11  (correção)
+npm version minor --no-git-tag-version   # 0.0.10 → 0.1.0   (funcionalidade nova)
+npm version major --no-git-tag-version   # 0.0.10 → 1.0.0   (mudança incompatível)
+# Ou defina diretamente:
+npm version 1.0.1 --no-git-tag-version
 
 # 2. Commit da alteração
 git add package.json package-lock.json
