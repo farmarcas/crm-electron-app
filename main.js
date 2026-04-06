@@ -147,6 +147,13 @@ const createWindow = () => {
   mainWindow.loadURL(SUGGESTIONS_URL);
   mainWindow.setMenu(null);
 
+  const appTitle = `${PRODUCT_DISPLAY_NAME} v${app.getVersion()}`;
+  mainWindow.webContents.on("did-finish-load", () => mainWindow.setTitle(appTitle));
+  mainWindow.on("page-title-updated", (event) => {
+    event.preventDefault();
+    mainWindow.setTitle(appTitle);
+  });
+
   mainWindow.on("close", (event) => {
     if (!app.isQuiting) {
       event.preventDefault();
