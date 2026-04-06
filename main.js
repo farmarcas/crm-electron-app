@@ -179,6 +179,16 @@ const createTray = () => {
         mainWindow.focus();
       }
     },
+    { type: "separator" },
+    {
+      label: "Verificar atualizações",
+      click: () => {
+        if (app.isPackaged) {
+          autoUpdater.checkForUpdates();
+        }
+      }
+    },
+    { type: "separator" },
     {
       label: "Sair",
       click: () => {
