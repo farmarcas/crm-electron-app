@@ -204,6 +204,7 @@ const configureOpenAtLogin = () => {
       if (!fs.existsSync(autostartDir)) {
         fs.mkdirSync(autostartDir, { recursive: true });
       }
+      
       const desktop = [
         "[Desktop Entry]",
         "Type=Application",
@@ -214,6 +215,7 @@ const configureOpenAtLogin = () => {
         "NoDisplay=false",
         "X-GNOME-Autostart-enabled=true"
       ].join("\n");
+
       fs.writeFileSync(desktopPath, `${desktop}\n`, "utf8");
     } catch (err) {
       console.error("Autostart Linux (XDG):", err.message);

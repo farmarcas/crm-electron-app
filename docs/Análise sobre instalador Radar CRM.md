@@ -243,6 +243,193 @@ env:
 
 Com isso, o job `release` atual (que usa `softprops/action-gh-release`) pode ser removido, pois o `electron-builder` passa a criar e publicar o Release diretamente.
 
+### Como funciona o electron-updater
+
+  Fluxo geral
+
+  Build → publica latest.yml + instalador no GitHub Release
+                      ↓
+  App inicia → consulta latest.yml → compara versão
+                      ↓
+          Nova versão? → baixa instalador em background
+                      ↓
+          Download completo → notifica usuário → instala + reinicia
+
+  ---
+  1. O arquivo latest.yml
+
+  É o artefato central do mecanismo. O electron-builder o gera automaticamente no build e tem esta estrutura:
+
+  version: 1.2.0
+  files:
+    - url: RadarCRM-Setup-1.2.0.exe
+      sha512: <hash>
+      size: 85432190
+  path: RadarCRM-Setup-1.2.0.exe
+  sha512: <hash>
+  releaseDate: '2026-04-06T00:00:00.000Z'
+
+  O app baixa esse arquivo (leve, ~200 bytes) para checar se há nova versão, sem precisar baixar o instalador inteiro.
+
+  ---
+  2. Por que nsis e não portable
+
+  O portable é apenas um .exe autoextraível — não registra nada no sistema, não tem caminho de instalação fixo. O updater precisa:
+  - Saber onde o app está instalado (para substituir arquivos)
+  - Ter permissão de escrita nesse local
+  - Um mecanismo para reiniciar após a atualização
+
+  O nsis instala em %LOCALAPPDATA%\Programs\ por padrão (sem precisar de admin), cria entradas de desinstalação e tem um Squirrel-like hook
+  que o updater usa para trocar os binários.
+
+  ---
+  3. checkForUpdatesAndNotify() vs controle manual
+
+  Modo silencioso (o que está no main.js atual):
+  autoUpdater.checkForUpdatesAndNotify();
+  - Checa, baixa e exibe uma notificação nativa do SO
+  - A instalação só ocorre quando o usuário reinicia o app manualmente
+  - Zero código extra necessário
+
+  Modo controlado (para UX mais elaborada):
+  autoUpdater.on('update-available', (info) => {
+    // avisar o usuário que há update, mostrar changelog
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    // progress.percent, progress.bytesPerSecond, progress.transferred
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    // perguntar ao usuário se quer reiniciar agora
+    autoUpdater.quitAndInstall(); // fecha e instala imediatamente
+  });
+
+  autoUpdater.checkForUpdates();
+
+  ---
+  4. O que acontece no CI com --publish=always
+
+  Com --publish=never (atual): o build gera os artefatos localmente, e o job softprops/action-gh-release os faz upload manualmente.
+
+  Com --publish=always: o electron-builder ele mesmo:
+  1. Checa se já existe um Release com a tag atual no GitHub
+  2. Se não existe, cria o Release
+  3. Faz upload de todos os artefatos (.exe, latest.yml, .blockmap)
+
+  O job release do workflow pode ser removido — o electron-builder absorve essa responsabilidade. O GH_TOKEN no env do step de build é o que
+   autoriza esse acesso à API do GitHub.
+
+  ---
+  5. O .blockmap
+
+  Gerado junto com o instalador. Permite atualizações diferenciais: em vez de baixar o instalador completo (ex: 80MB), o updater baixa
+  apenas os blocos que mudaram entre versões. Em apps que mudam pouco o bundle de dependências entre releases, a economia pode ser de 80-90%
+   do tamanho do download.
+
+  ---
+  Requisito de assinatura
+
+  No Windows, o updater verifica a assinatura do instalador baixado via sha512 (no latest.yml). Sem certificado de código
+  (CSC_LINK/CSC_KEY_PASSWORD), o Windows SmartScreen bloqueia a instalação. O certificado já está configurado nos secrets do CI, então isso
+  não é um problema aqui.
+
+❯ quero gerar o certificado e configurar o pipeline com o LINK, PASS e GH_TOKEN. como faço isso para todas essas chaves                     
+  ⎿  ⧉ Selected 3 lines from .github/workflows/release.yml in Trae
+
+⏺ Configurando os 3 secrets
+
+  1. GH_TOKEN — mais simples
+
+  O GITHUB_TOKEN é gerado automaticamente pelo GitHub Actions — você não precisa criar nada. Ele já existe em todo workflow. Basta garantir
+  que o workflow tem permissão de escrita:
+
+  No repositório: Settings → Actions → General → Workflow permissions → marcar "Read and write permissions".
+
+  ---
+  2. WIN_CSC_LINK + WIN_CSC_PASSWORD — certificado de código
+
+  Você precisa de um certificado .pfx. Há dois caminhos:
+
+  ---
+  Opção A: Certificado auto-assinado (gratuito, sem SmartScreen verde)
+
+  Funciona para distribuição interna. O Windows vai mostrar aviso na primeira execução.
+
+  No PowerShell (Windows):
+  # Gera o certificado
+  $cert = New-SelfSignedCertificate `
+    -Type CodeSigningCert `
+    -Subject "CN=Radar CRM, O=Farmarcas" `
+    -CertStoreLocation "Cert:\CurrentUser\My" `
+    -NotAfter (Get-Date).AddYears(5)
+
+  # Exporta como .pfx com senha
+  $pwd = ConvertTo-SecureString -String "SUA_SENHA_AQUI" -Force -AsPlainText
+  Export-PfxCertificate `
+    -Cert $cert `
+    -FilePath "C:\temp\farmarcas-codesign.pfx" `
+    -Password $pwd
+
+  ---
+  Opção B: Certificado EV/OV comercial (pago, SmartScreen confiável)
+
+  Emitido por CA como Sectigo, DigiCert ou SSL.com (~$100-400/ano). Você recebe um arquivo .pfx + senha diretamente da CA.
+
+  ---
+  3. Convertendo o .pfx para configurar no GitHub
+
+  O WIN_CSC_LINK aceita duas formas:
+  - Um caminho/URL para o .pfx
+  - O conteúdo do .pfx em base64 (recomendado para CI)
+
+  Converta o arquivo para base64:
+
+  No PowerShell:
+  [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\temp\farmarcas-codesign.pfx")) | clip
+
+  No macOS/Linux:
+  base64 -i farmarcas-codesign.pfx | pbcopy  # macOS
+  base64 -w 0 farmarcas-codesign.pfx | xclip # Linux
+
+  ---
+  4. Adicionando os secrets no GitHub
+
+  Settings → Secrets and variables → Actions → New repository secret
+
+  ┌──────────────────┬──────────────────────────────────────────┐
+  │      Secret      │                  Valor                   │
+  ├──────────────────┼──────────────────────────────────────────┤
+  │ WIN_CSC_LINK     │ O conteúdo base64 do .pfx (string longa) │
+  ├──────────────────┼──────────────────────────────────────────┤
+  │ WIN_CSC_PASSWORD │ A senha que você usou ao exportar o .pfx │
+  └──────────────────┴──────────────────────────────────────────┘
+
+  O GITHUB_TOKEN não é adicionado como secret — ele é injetado automaticamente pelo runner.
+
+  ---
+  5. Verificar o workflow
+
+  O step de build já deve estar assim:
+  env:
+    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+    CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_PASSWORD }}
+
+  O electron-builder lê CSC_LINK e CSC_KEY_PASSWORD automaticamente — se o valor de CSC_LINK for uma string base64, ele decodifica e usa
+  como .pfx em memória, sem precisar salvar o arquivo no runner.
+
+  ---
+  Resumo do fluxo
+
+  Gerar .pfx (PowerShell ou CA comercial)
+      ↓
+  Converter para base64
+      ↓
+  Adicionar WIN_CSC_LINK (base64) e WIN_CSC_PASSWORD no GitHub Secrets
+      ↓
+  GITHUB_TOKEN: apenas habilitar "Read and write permissions" nas Actions
+
 ---
 
 ## 4. Itens menores
