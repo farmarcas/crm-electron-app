@@ -38,7 +38,15 @@ ipcRenderer.on("update-downloaded", (_, version) => {
   if (bar) {
     bar.style.background = "#22c55e";
     bar.style.color = "#fff";
-    bar.querySelector("span").textContent =
-      `✅ Versão ${version} pronta — o app será reiniciado em instantes.`;
+    bar.innerHTML = `
+      <span>✅ Versão ${version} baixada e pronta para instalar.</span>
+      <button id="crm-update-install" style="
+        background:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;
+        color:#166534;padding:4px 12px;border-radius:4px;margin-left:12px
+      ">Reiniciar agora</button>
+    `;
+    document.getElementById("crm-update-install").addEventListener("click", () =>
+      ipcRenderer.send("install-update")
+    );
   }
 });

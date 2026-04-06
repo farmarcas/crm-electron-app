@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, Tray, Menu, nativeImage } = require("electron");
+const { app, BrowserWindow, screen, Tray, Menu, nativeImage, ipcMain } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const fs = require("fs");
 const path = require("path");
@@ -267,8 +267,9 @@ app.whenReady().then(() => {
     autoUpdater.on("update-downloaded", (info) => {
       autoUpdater.logger.info("updater: download concluído, versão", info.version);
       if (mainWindow) mainWindow.webContents.send("update-downloaded", info.version);
-      setTimeout(() => autoUpdater.quitAndInstall(), 3000);
     });
+
+    ipcMain.on("install-update", () => autoUpdater.quitAndInstall());
     autoUpdater.on("error", (err) =>
       autoUpdater.logger.error("updater: erro", err.message)
     );
