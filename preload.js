@@ -102,9 +102,9 @@ function getOrCreateBar() {
 
 ipcRenderer.on("update-available", (_, version) => {
   const bar = getOrCreateBar();
-  document.getElementById("crm-update-icon").textContent = "⬇️";
-  document.getElementById("crm-update-title").textContent = `Nova versão ${version} disponível`;
-  document.getElementById("crm-update-sub").textContent = "Baixando em segundo plano...";
+  document.getElementById("crm-update-icon").textContent = "🔔";
+  document.getElementById("crm-update-title").textContent = "Nova versão disponível";
+  document.getElementById("crm-update-sub").textContent = `Versão ${version} está sendo baixada...`;
   document.getElementById("crm-update-progress-bar").style.width = "0%";
   const existing = document.getElementById("crm-btn-install");
   if (existing) existing.remove();
@@ -114,14 +114,14 @@ ipcRenderer.on("download-progress", (_, percent) => {
   const bar = document.getElementById("crm-update-bar");
   if (!bar) return;
   document.getElementById("crm-update-progress-bar").style.width = `${percent}%`;
-  document.getElementById("crm-update-sub").textContent = `Baixando... ${percent}%`;
+  document.getElementById("crm-update-sub").textContent = `Baixando atualização... ${percent}%`;
 });
 
 ipcRenderer.on("update-downloaded", (_, version) => {
   const bar = getOrCreateBar();
-  document.getElementById("crm-update-icon").textContent = "✅";
-  document.getElementById("crm-update-title").textContent = `Versão ${version} pronta para instalar`;
-  document.getElementById("crm-update-sub").textContent = "Reinicie para aplicar a atualização.";
+  document.getElementById("crm-update-icon").textContent = "🔔";
+  document.getElementById("crm-update-title").textContent = "Nova versão disponível";
+  document.getElementById("crm-update-sub").textContent = `Versão ${version} pronta para instalar.`;
   document.getElementById("crm-update-progress-bar").style.width = "100%";
   document.getElementById("crm-update-progress-bar").style.background = "#22c55e";
 
@@ -129,7 +129,7 @@ ipcRenderer.on("update-downloaded", (_, version) => {
     const btn = document.createElement("button");
     btn.className = "crm-btn";
     btn.id = "crm-btn-install";
-    btn.textContent = "Reiniciar agora";
+    btn.textContent = "Atualizar agora";
     btn.addEventListener("click", () => ipcRenderer.send("install-update"));
     document.getElementById("crm-update-inner").insertBefore(
       btn,
