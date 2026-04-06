@@ -88,21 +88,47 @@ Sem assinatura, o **Windows SmartScreen exibe um aviso de bloqueio** a cada inst
 
 **a) Gerar o certificado uma única vez (Windows, PowerShell)**
 
+**Passo 1 — Abrir o PowerShell como Administrador**
+
+- Tecla Win → digitar `powershell`
+- Clicar com botão direito → "Executar como administrador"
+- Confirmar no UAC
+
+**Passo 2 — Verificar e liberar a política de execução**
+
 ```powershell
-# Gera o certificado
-$cert = New-SelfSignedCertificate `
-  -Type CodeSigningCert `
-  -Subject "CN=CRM Radar, O=Farmarcas" `
-  -KeyExportPolicy Exportable `
-  -NotAfter (Get-Date).AddYears(3) `
-  -CertStoreLocation Cert:\CurrentUser\My
+Get-ExecutionPolicy
+```
 
-# Exporta como .pfx (guarde o arquivo e a senha com segurança)
-$pwd = ConvertTo-SecureString -String "senha-forte-aqui" -Force -AsPlainText
-Export-PfxCertificate -Cert $cert -FilePath crm-radar.pfx -Password $pwd
+Se retornar `Restricted`, executar:
 
-# Converte para base64 (copiar para o GitHub Secret)
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("crm-radar.pfx")) | clip
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
+```
+
+**Passo 3 — Gerar o certificado**
+
+```powershell
+$cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=Radar CRM, O=Farmarcas" -KeyExportPolicy Exportable -NotAfter (Get-Date).AddYears(3) -CertStoreLocation Cert:\CurrentUser\My
+```
+
+Verificar se funcionou:
+
+```powershell
+$cert.Thumbprint
+```
+
+**Passo 4 — Exportar o `.pfx`**
+
+```powershell
+$pwd = ConvertTo-SecureString -String "senha_aqui" -Force -AsPlainText
+Export-PfxCertificate -Cert $cert -FilePath "$env:USERPROFILE\Desktop\radar-crm.pfx" -Password $pwd
+```
+
+**Passo 5 — Gerar o base64 (copiar para o GitHub Secret)**
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:USERPROFILE\Desktop\crm-radar.pfx")) | Set-Clipboard
 ```
 
 **b) Adicionar os secrets no repositório GitHub**
