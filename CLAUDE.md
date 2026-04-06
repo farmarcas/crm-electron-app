@@ -49,7 +49,8 @@ npm version 1.0.1 --no-git-tag-version   # versão específica
 git add package.json package-lock.json
 git commit -m "chore: bump version to $(node -p "require('./package.json').version")"
 git tag v$(node -p "require('./package.json').version")
-git push origin main --tags
+git push origin main
+git push origin v$(node -p "require('./package.json').version")
 ```
 
 The workflow (`release.yml`) strips the `v` prefix before passing the version to `npm version` inside the runner, then builds and publishes artefacts to the GitHub Release via `electron-builder --publish=always`.

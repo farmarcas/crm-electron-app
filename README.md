@@ -45,9 +45,10 @@ npm version 1.0.1 --no-git-tag-version
 git add package.json package-lock.json
 git commit -m "chore: bump version to $(node -p "require('./package.json').version")"
 
-# 3. Crie e publique a tag
+# 3. Crie e publique a tag separadamente da branch
 git tag v$(node -p "require('./package.json').version")
-git push origin main --tags
+git push origin main
+git push origin v$(node -p "require('./package.json').version")
 ```
 
 O GitHub Actions irá:

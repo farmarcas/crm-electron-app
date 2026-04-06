@@ -42,7 +42,8 @@ npm version 1.0.1 --no-git-tag-version
 git add package.json package-lock.json
 git commit -m "chore: bump version to $(node -p "require('./package.json').version")"
 git tag v$(node -p "require('./package.json').version")
-git push origin main --tags
+git push origin main
+git push origin v$(node -p "require('./package.json').version")
 ```
 
 O CI (`release.yml`) cuida de tudo: build multiplataforma, assinatura do executável Windows e publicação no GitHub Release.
