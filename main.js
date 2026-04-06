@@ -254,9 +254,10 @@ app.whenReady().then(() => {
     autoUpdater.on("checking-for-update", () =>
       autoUpdater.logger.info("updater: verificando atualização...")
     );
-    autoUpdater.on("update-available", (info) =>
-      autoUpdater.logger.info("updater: nova versão disponível", info.version)
-    );
+    autoUpdater.on("update-available", (info) => {
+      autoUpdater.logger.info("updater: nova versão disponível", info.version);
+      if (mainWindow) mainWindow.webContents.send("update-available", info.version);
+    });
     autoUpdater.on("update-not-available", (info) =>
       autoUpdater.logger.info("updater: app já está na versão mais recente", info.version)
     );
@@ -265,13 +266,15 @@ app.whenReady().then(() => {
     );
     autoUpdater.on("update-downloaded", (info) => {
       autoUpdater.logger.info("updater: download concluído, versão", info.version);
-      autoUpdater.quitAndInstall();
+      if (mainWindow) mainWindow.webContents.send("update-downloaded", info.version);
+      setTimeout(() => autoUpdater.quitAndInstall(), 3000);
     });
     autoUpdater.on("error", (err) =>
       autoUpdater.logger.error("updater: erro", err.message)
     );
 
     autoUpdater.checkForUpdates();
+    setInterval(() => autoUpdater.checkForUpdates(), 60 * 60 * 1000);
   }
   if (process.platform === "darwin") {
     try {
