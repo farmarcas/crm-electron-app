@@ -34,7 +34,7 @@ jobs:
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          npm version "$VERSION" --no-git-tag-version
+          npm version "$VERSION" --no-git-tag-version || true
       - run: npm run lint
       - run: npm run test
       - name: Build
