@@ -274,7 +274,7 @@ app.whenReady().then(() => {
     );
 
     autoUpdater.checkForUpdates();
-    setInterval(() => autoUpdater.checkForUpdates(), 60 * 60 * 1000);
+    setInterval(() => autoUpdater.checkForUpdates(), 60 * 1000);
   }
   if (process.platform === "darwin") {
     try {
