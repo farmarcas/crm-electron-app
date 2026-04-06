@@ -1,6 +1,6 @@
 {
   "name": "crm-electron-app",
-  "version": "0.0.24",
+  "version": "0.0.25",
   "description": "App de Recomendações de Produtos",
   "author": "CRM Team Farmarcas <uelinton.martins@terceirizados.farmarcas.com.br>",
   "main": "main.js",
@@ -34,8 +34,10 @@
       "artifactName": "CRM-Radar-Setup-${version}.exe"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "allowElevation": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "CRM Radar",
