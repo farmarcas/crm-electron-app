@@ -47,7 +47,8 @@
     "publish": {
       "provider": "github",
       "owner": "farmarcas",
-      "repo": "crm-electron-app"
+      "repo": "crm-electron-app",
+      "releaseType": "release"
     },
     "mac": {
       "target": [
