@@ -39,7 +39,7 @@
         "deb",
         "rpm"
       ],
-      "icon": "assets/icon.png",
+      "icon": "assets",
       "extraFiles": [
         {
           "from": "scripts/linux-install-autostart.sh",

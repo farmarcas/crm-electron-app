@@ -5,6 +5,13 @@ const zlib = require("zlib");
 
 const APP_AUTOSTART_ID = "br.com.farmarcas.crm-electron-app";
 const PRODUCT_DISPLAY_NAME = "CRM Radar";
+const ICON_PATHS = {
+  png: path.join(__dirname, "assets/512x512.png"),
+  png16: path.join(__dirname, "assets/16x16.png"),
+  png32: path.join(__dirname, "assets/32x32.png"),
+  ico: path.join(__dirname, "assets/icon.ico"),
+  icns: path.join(__dirname, "assets/icon.icns")
+};
 
 const SUGGESTIONS_URL = "https://develop.dmpdjw0btm4j5.amplifyapp.com/";
 let mainWindow;
@@ -121,12 +128,13 @@ const TrayIcon = (() => {
 const createWindow = () => {
   const { workArea } = screen.getPrimaryDisplay();
   const panelWidth = 400;
+  const windowIcon = process.platform === "win32" ? ICON_PATHS.ico : ICON_PATHS.png;
   mainWindow = new BrowserWindow({
     width: panelWidth,
     height: workArea.height,
     x: workArea.x + workArea.width - panelWidth,
     y: workArea.y,
-    icon: path.join(__dirname, "assets/icon.ico"),
+    icon: windowIcon,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -146,12 +154,8 @@ const createWindow = () => {
 };
 
 const createTray = () => {
-  const image = TrayIcon.createImage(64, 18);
+  const image = nativeImage.createFromPath(ICON_PATHS.png16);
   tray = new Tray(image);
-  tray.setImage(image);
-  if (process.platform === "darwin") {
-    tray.setPressedImage(image);
-  }
   tray.setToolTip("Sugestões");
   tray.on("click", () => {
     if (mainWindow) {
@@ -229,7 +233,11 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
   if (process.platform === "darwin") {
-    app.dock.setIcon(path.join(__dirname, "assets/icon"));
+    try {
+      app.dock.setIcon(nativeImage.createFromPath(ICON_PATHS.png));
+    } catch (err) {
+      console.error("Dock icon:", err.message);
+    }
   }
 
   app.on("activate", () => {
