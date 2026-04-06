@@ -28,3 +28,28 @@ Os artefatos são gerados em `dist/`.
 
 ### Testes
 - [SO - Inicializar Automaticamente](docs/teste-autostart.md)
+
+## Publicando uma nova versão
+
+O pipeline de release é disparado automaticamente ao criar uma tag com prefixo `v`.
+
+```bash
+# 1. Atualize a versão no package.json
+npm version patch --no-git-tag-version   # ou minor / major
+# ex: 0.0.9 → 0.0.10
+
+# 2. Commit da alteração
+git add package.json package-lock.json
+git commit -m "chore: bump version to $(node -p "require('./package.json').version")"
+
+# 3. Crie e publique a tag
+git tag v$(node -p "require('./package.json').version")
+git push origin main --tags
+```
+
+O GitHub Actions irá:
+1. Compilar o instalador para Windows, macOS e Linux
+2. Assinar o executável Windows com o certificado configurado nos secrets
+3. Publicar os artefatos e o `latest.yml` no GitHub Release da tag
+
+Usuários com o app instalado serão notificados automaticamente pelo auto-updater.

@@ -29,4 +29,18 @@
 - Atualize a lista `build.files` ao adicionar/remover arquivos essenciais.
 - Gere builds apenas pelos scripts `npm run dist:win` e `npm run dist:mac`.
 
+## Publicando uma nova versão
+
+Sempre use tags com prefixo `v`. Tags sem `v` (ex: `0.0.9`) causam build duplicado porque o `electron-builder` cria uma segunda tag `v0.0.9` que dispara o workflow novamente.
+
+```bash
+npm version patch --no-git-tag-version
+git add package.json package-lock.json
+git commit -m "chore: bump version to $(node -p "require('./package.json').version")"
+git tag v$(node -p "require('./package.json').version")
+git push origin main --tags
+```
+
+O CI (`release.yml`) cuida de tudo: build multiplataforma, assinatura do executável Windows e publicação no GitHub Release.
+
 

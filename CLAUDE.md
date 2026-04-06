@@ -36,6 +36,22 @@ This is a minimal Electron app that renders an external URL (`SUGGESTIONS_URL` i
 - Only load trusted URLs in `loadURL`.
 - The `preload.js` must only expose the minimum necessary API surface via `contextBridge`.
 
+## Releasing a new version
+
+Tags must use the `v` prefix (e.g. `v1.2.3`). The CI workflow triggers only on `v*.*.*` tags.
+
+```bash
+npm version patch --no-git-tag-version   # bumps package.json only, no git tag
+git add package.json package-lock.json
+git commit -m "chore: bump version to $(node -p "require('./package.json').version")"
+git tag v$(node -p "require('./package.json').version")
+git push origin main --tags
+```
+
+The workflow (`release.yml`) strips the `v` prefix before passing the version to `npm version` inside the runner, then builds and publishes artefacts to the GitHub Release via `electron-builder --publish=always`.
+
+**Do not** create bare tags without the `v` prefix (e.g. `0.0.9`) — `electron-builder` would create a second `v0.0.9` tag and trigger a duplicate build.
+
 ## Platform notes
 
 - Window panel width is fixed at 400px — only change if explicitly required.
