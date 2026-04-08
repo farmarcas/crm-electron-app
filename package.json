@@ -6,6 +6,10 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "start:update-ui": "electron . --update-ui-dev",
+    "start:update-ui:ready": "CRM_DEV_UPDATE_SNAPSHOT=ready CRM_DEV_UPDATE_MS=0 electron . --update-ui-dev",
+    "start:update-ui:downloading": "CRM_DEV_UPDATE_SNAPSHOT=downloading CRM_DEV_UPDATE_MS=0 electron . --update-ui-dev",
+    "start:update-ui:slow": "CRM_DEV_UPDATE_MS=0 CRM_DEV_UPDATE_STEP_MS=700 CRM_DEV_UPDATE_SLOW_CSS=1 electron . --update-ui-dev",
     "build": "electron-builder",
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
@@ -75,6 +79,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "preload-updater-ui.js",
       "package.json",
       "assets/**/*",
       "node_modules/electron-log/**/*",

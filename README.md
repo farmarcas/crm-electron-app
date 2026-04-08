@@ -28,6 +28,7 @@ Os artefatos são gerados em `dist/`.
 
 ### Testes
 - [SO - Inicializar Automaticamente](docs/teste-autostart.md)
+- [Barra de atualização (preview em dev)](docs/UPDATE_UI_DEV.md)
 
 ## Publicando uma nova versão
 
