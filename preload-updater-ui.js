@@ -158,7 +158,7 @@ module.exports = function createUpdaterBar(ipcRenderer, opts = {}) {
       return;
     }
     document.getElementById("crm-update-title").textContent = "Nova versão disponível 🚀";
-    document.getElementById("crm-update-sub").textContent = `Versão ${version} traz melhorias de desempenho.`;
+    document.getElementById("crm-update-sub").textContent = `A versão ${version} traz melhorias de desempenho.`;
 
     const installBtn = document.getElementById("crm-btn-install");
     if (installBtn) {
