@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, Tray, Menu, nativeImage, ipcMain } = require("electron");
+const { app, BrowserWindow, screen, Tray, Menu, nativeImage, ipcMain, dialog } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const fs = require("fs");
 const path = require("path");
@@ -17,6 +17,41 @@ const ICON_PATHS = {
 const SUGGESTIONS_URL = "https://develop.dmpdjw0btm4j5.amplifyapp.com/";
 let mainWindow;
 let tray;
+
+/** Preview da barra de update (só fonte de verdade: não empacotado + flag ou env). */
+const devUpdateBarPreview = () => {
+  if (app.isPackaged) return false;
+  if (process.argv.includes("--update-ui-dev")) return true;
+  return process.env.CRM_DEV_UPDATE_BAR === "1";
+};
+
+const devUpdatePreviewDelayMs = () => {
+  const delayRaw = process.env.CRM_DEV_UPDATE_MS;
+  if (delayRaw !== undefined && delayRaw !== "") {
+    return parseInt(delayRaw, 10) || 0;
+  }
+  return 1200;
+};
+
+const devUpdatePreviewWebPrefsArgs = () => {
+  if (!devUpdateBarPreview()) return [];
+  const args = ["--crm-dev-update-bar"];
+  const stepMs = process.env.CRM_DEV_UPDATE_STEP_MS;
+  if (stepMs !== undefined && stepMs !== "") {
+    args.push(`--crm-dev-update-step-ms=${parseInt(stepMs, 10) || 140}`);
+  }
+  if (process.env.CRM_DEV_UPDATE_SLOW_CSS === "1") {
+    args.push("--crm-dev-slow-css");
+  }
+  args.push(`--crm-dev-snapshot=${devUpdatePreviewSnapshot()}`);
+  args.push(`--crm-dev-delay-ms=${devUpdatePreviewDelayMs()}`);
+  return args;
+};
+
+const devUpdatePreviewSnapshot = () => {
+  const s = (process.env.CRM_DEV_UPDATE_SNAPSHOT || "banner").toLowerCase();
+  return s === "downloading" || s === "ready" ? s : "banner";
+};
 
 const TrayIcon = (() => {
   const CRC_TABLE = (() => {
@@ -127,6 +162,18 @@ const TrayIcon = (() => {
 })();
 
 const createWindow = () => {
+  const isUpdateUiPreview = devUpdateBarPreview();
+  if (isUpdateUiPreview) {
+    process.env.CRM_PREVIEW_SNAPSHOT = devUpdatePreviewSnapshot();
+    process.env.CRM_PREVIEW_DELAY_MS = String(devUpdatePreviewDelayMs());
+    console.error(
+      "[CRM Radar] preview bar UI | snapshot=%s delayMs=%s argv flag=%s",
+      process.env.CRM_PREVIEW_SNAPSHOT,
+      process.env.CRM_PREVIEW_DELAY_MS,
+      process.argv.includes("--update-ui-dev")
+    );
+  }
+
   const { workArea } = screen.getPrimaryDisplay();
   const panelWidth = 400;
   const windowIcon = process.platform === "win32" ? ICON_PATHS.ico : ICON_PATHS.png;
@@ -138,17 +185,25 @@ const createWindow = () => {
     title: `${PRODUCT_DISPLAY_NAME} v${app.getVersion()}`,
     icon: windowIcon,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, isUpdateUiPreview ? "preload.dev.js" : "preload.js"),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: !isUpdateUiPreview,
+      additionalArguments: devUpdatePreviewWebPrefsArgs()
     }
   });
 
   mainWindow.loadURL(SUGGESTIONS_URL);
   mainWindow.setMenu(null);
 
+  if (devUpdateBarPreview()) {
+    mainWindow.webContents.openDevTools({ mode: "detach" });
+  }
+
   const appTitle = `${PRODUCT_DISPLAY_NAME} v${app.getVersion()}`;
-  mainWindow.webContents.on("did-finish-load", () => mainWindow.setTitle(appTitle));
+  mainWindow.webContents.on("did-finish-load", () => {
+    mainWindow.setTitle(appTitle);
+  });
   mainWindow.on("page-title-updated", (event) => {
     event.preventDefault();
     mainWindow.setTitle(appTitle);
@@ -259,9 +314,10 @@ app.whenReady().then(() => {
     autoUpdater.logger.transports.file.level = "info";
     autoUpdater.verifyUpdateCodeSignature = () => null;
 
-    autoUpdater.on("checking-for-update", () =>
-      autoUpdater.logger.info("updater: verificando atualização...")
-    );
+    autoUpdater.on("checking-for-update", () => {
+      autoUpdater.logger.info("updater: verificando atualização...");
+      console.log("updater: verificando atualização...");
+  });
     autoUpdater.on("update-available", (info) => {
       autoUpdater.logger.info("updater: nova versão disponível", info.version);
       if (mainWindow) mainWindow.webContents.send("update-available", info.version);
@@ -286,6 +342,16 @@ app.whenReady().then(() => {
 
     autoUpdater.checkForUpdates();
     setInterval(() => autoUpdater.checkForUpdates(), 60 * 1000);
+  }
+  if (devUpdateBarPreview()) {
+    ipcMain.on("install-update", () => {
+      if (!mainWindow) return;
+      dialog.showMessageBox(mainWindow, {
+        type: "info",
+        title: "Preview de atualização",
+        message: "Em build empacotada, o app fecharia e aplicaria a atualização agora."
+      });
+    });
   }
   if (process.platform === "darwin") {
     try {
