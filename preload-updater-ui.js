@@ -57,7 +57,7 @@ module.exports = function createUpdaterBar(ipcRenderer, opts = {}) {
       color: var(--crm-update-bar-color-text-primary, #fff);
     }
     #crm-update-text { flex: 1; line-height: 1.4;}
-    #crm-update-text #crm-update-title { display: block; font-size: 13px; color: #fff; margin-bottom: 8px;}
+    #crm-update-text #crm-update-title { display: block; font-size: 13px; color: #fff; margin-bottom: 8px; font-weight: 700; }
     #crm-update-text #crm-update-sub { font-size: 11px; color: var(--crm-update-bar-color-text-secondary, #fff); }
     #crm-actions {
       display: flex;
