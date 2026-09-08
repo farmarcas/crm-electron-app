@@ -14,6 +14,7 @@
     "test": "node -e \"console.log('Testes não configurados')\""
   },
   "devDependencies": {
+    "dotenv": "^17.4.2",
     "electron": "^31.0.0",
     "electron-builder": "^26.4.0"
   },
@@ -75,6 +76,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "server/**/*",
       "package.json",
       "assets/**/*",
       "node_modules/electron-log/**/*",

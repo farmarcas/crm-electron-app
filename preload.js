@@ -7,6 +7,27 @@ contextBridge.exposeInMainWorld("appInfo", {
   electron: process.versions.electron
 });
 
+let pendingIdentification = null;
+let identificationListener = null;
+
+ipcRenderer.on("pdv-identification", (_, payload) => {
+  if (identificationListener) {
+    identificationListener(payload);
+  } else {
+    pendingIdentification = payload;
+  }
+});
+
+contextBridge.exposeInMainWorld("crmPdvBridge", {
+  onIdentification(callback) {
+    identificationListener = callback;
+    if (pendingIdentification) {
+      callback(pendingIdentification);
+      pendingIdentification = null;
+    }
+  }
+});
+
 function ensureStyles() {
   if (document.getElementById("crm-update-styles")) return;
   const style = document.createElement("style");

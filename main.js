@@ -1,8 +1,16 @@
 const { app, BrowserWindow, screen, Tray, Menu, nativeImage, ipcMain } = require("electron");
 const { autoUpdater } = require("electron-updater");
+const log = require("electron-log");
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
+
+if (!app.isPackaged) {
+  require("dotenv").config({ path: path.join(__dirname, ".env") });
+}
+
+const { createLocalServer } = require("./server/server");
+const sessionStore = require("./server/session-store");
 
 const APP_AUTOSTART_ID = "br.com.farmarcas.crm-electron-app";
 const PRODUCT_DISPLAY_NAME = "CRM Radar";
@@ -14,9 +22,10 @@ const ICON_PATHS = {
   icns: path.join(__dirname, "assets/icon.icns")
 };
 
-const SUGGESTIONS_URL = "https://develop.dmpdjw0btm4j5.amplifyapp.com/";
+const SUGGESTIONS_URL = process.env.SUGGESTIONS_URL || "https://develop.dmpdjw0btm4j5.amplifyapp.com/";
 let mainWindow;
 let tray;
+let localServer;
 
 const TrayIcon = (() => {
   const CRC_TABLE = (() => {
@@ -147,6 +156,10 @@ const createWindow = () => {
   mainWindow.loadURL(SUGGESTIONS_URL);
   mainWindow.setMenu(null);
 
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools({ mode: "detach" });
+  }
+
   const appTitle = `${PRODUCT_DISPLAY_NAME} v${app.getVersion()}`;
   mainWindow.webContents.on("did-finish-load", () => mainWindow.setTitle(appTitle));
   mainWindow.on("page-title-updated", (event) => {
@@ -250,12 +263,29 @@ const configureOpenAtLogin = () => {
   }
 };
 
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+app.on("second-instance", () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
+
 app.whenReady().then(() => {
   configureOpenAtLogin();
   createWindow();
   createTray();
+  localServer = createLocalServer({
+    store: sessionStore,
+    getMainWindow: () => mainWindow,
+    logger: log
+  });
   if (app.isPackaged) {
-    autoUpdater.logger = require("electron-log");
+    autoUpdater.logger = log;
     autoUpdater.logger.transports.file.level = "info";
     autoUpdater.verifyUpdateCodeSignature = () => null;
 
@@ -311,3 +341,4 @@ app.on("window-all-closed", () => {
     }
   }
 });
+}
