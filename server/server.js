@@ -16,10 +16,11 @@ function createLocalServer({
     try {
       const securityStatus = evaluateSecurity(req, allowedHosts);
       if (securityStatus) return respondEmpty(res, securityStatus);
-      if (req.method !== "POST") return respondEmpty(res, 405);
 
       const handler = routes.get(req.url);
       if (!handler) return respondEmpty(res, 404);
+      if (req.method !== "POST") return respondEmpty(res, 405);
+      if (req.headers["content-type"] !== "application/json") return respondEmpty(res, 415);
 
       const body = await readJsonBody(req, res, maxBodyBytes);
       if (body === null) return;
