@@ -1,0 +1,296 @@
+{
+  "info": {
+    "name": "CRM Radar - API local do PDV",
+    "description": "Integração PDV / Orçamento Balcão com o CRM Radar.\n\nPré-requisito: o CRM Radar precisa estar rodando (`npm start`). A API escuta apenas em 127.0.0.1:50505.\n\nOs requests estão numerados e devem ser executados NESTA ORDEM — o Collection Runner conta a história inteira do atendimento, do carrinho vazio até a troca de cliente.\n\nO Content-Type precisa ser application/json; parâmetros como charset são aceitos (ver request 10). Requisições com o header Origin são recusadas com 403 — a API é só para software local do caixa.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:50505",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Cesta ANTES de identificar (aceita e ignora)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Regra: sem atendimento aberto, a chamada é aceita e ignorada em silêncio.",
+              "// O PDV NUNCA pode receber erro aqui.",
+              "pm.test('responde 200, nao erro', () => pm.response.to.have.status(200));",
+              "pm.test('corpo e {ok:true}', () => pm.expect(pm.response.json()).to.eql({ ok: true }));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/basket", "host": ["{{baseUrl}}"], "path": ["basket"] },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"sales_items\": [\n    {\n      \"id\": 8801,\n      \"name\": \"Dipirona 500mg 20cp\",\n      \"quantity\": 1,\n      \"stock\": 34,\n      \"price\": 12.90,\n      \"ean\": \"7891234567890\",\n      \"sku\": \"DIP500\"\n    }\n  ]\n}"
+        },
+        "description": "A cesta chega antes de qualquer identificação. Deve ser aceita, ignorada, e nada aparece na tela."
+      }
+    },
+    {
+      "name": "2. Identificação (abre o atendimento)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('nao devolve dado de cliente', () => {",
+              "  const raw = pm.response.text();",
+              "  pm.expect(raw).to.not.include('12345678901');",
+              "  pm.expect(raw).to.not.include('12345678000190');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/identification", "host": ["{{baseUrl}}"], "path": ["identification"] },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"store\": { \"cnpj\": \"12.345.678/0001-90\" },\n  \"customer\": { \"cpf\": \"123.456.789-01\" },\n  \"seller\": { \"id\": 42, \"name\": \"Ana Souza\" }\n}"
+        },
+        "description": "Endpoint do Card 1. CPF e CNPJ podem vir com ou sem pontuação. Abre o atendimento e faz o painel carregar sozinho."
+      }
+    },
+    {
+      "name": "3. Cesta com 1 item",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('corpo e {ok:true}', () => pm.expect(pm.response.json()).to.eql({ ok: true }));",
+              "// No terminal do npm start deve aparecer:",
+              "//   API local: cesta registrada - 1 item(ns)"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/basket", "host": ["{{baseUrl}}"], "path": ["basket"] },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"sales_items\": [\n    {\n      \"id\": 8801,\n      \"name\": \"Dipirona 500mg 20cp\",\n      \"quantity\": 1,\n      \"stock\": 34,\n      \"price\": 12.90,\n      \"ean\": \"7891234567890\",\n      \"sku\": \"DIP500\"\n    }\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "4. Cesta com 2 itens (SUBSTITUI, nao acumula)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "// A resposta e opaca de proposito (nao devolve dado de cliente),",
+              "// entao a prova da SUBSTITUICAO esta no log do terminal:",
+              "//   API local: cesta registrada - 2 item(ns)     <- 2, nao 3"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/basket", "host": ["{{baseUrl}}"], "path": ["basket"] },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"sales_items\": [\n    {\n      \"id\": 8801,\n      \"name\": \"Dipirona 500mg 20cp\",\n      \"quantity\": 1,\n      \"stock\": 34,\n      \"price\": 12.90,\n      \"ean\": \"7891234567890\",\n      \"sku\": \"DIP500\"\n    },\n    {\n      \"id\": 4417,\n      \"name\": \"Água Micelar 200ml\",\n      \"quantity\": 2,\n      \"stock\": 8,\n      \"price\": 34.50,\n      \"ean\": \"7899876543210\",\n      \"sku\": \"AGU200\"\n    }\n  ]\n}"
+        },
+        "description": "O PDV reenvia a cesta INTEIRA a cada item inserido. O CRM Radar substitui a anterior. O log deve dizer 2 itens, não 3."
+      }
+    },
+    {
+      "name": "5. Cesta vazia (operador limpou o carrinho)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('responde 200', () => pm.response.to.have.status(200));"]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/basket", "host": ["{{baseUrl}}"], "path": ["basket"] },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"sales_items\": []\n}"
+        }
+      }
+    },
+    {
+      "name": "6. Erro - id como string (422)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 422', () => pm.response.to.have.status(422));",
+              "pm.test('aponta o campo errado', () => {",
+              "  const b = pm.response.json();",
+              "  pm.expect(b.error).to.eql('invalid_payload');",
+              "  pm.expect(b.details.some(d => d.path === 'sales_items[0].id')).to.be.true;",
+              "});",
+              "pm.test('nao ecoa o valor recebido', () => pm.expect(pm.response.text()).to.not.include('\"8801\"'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/basket", "host": ["{{baseUrl}}"], "path": ["basket"] },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"sales_items\": [\n    {\n      \"id\": \"8801\",\n      \"name\": \"Dipirona 500mg 20cp\",\n      \"quantity\": 1,\n      \"stock\": 34,\n      \"price\": 12.90,\n      \"ean\": \"7891234567890\",\n      \"sku\": \"DIP500\"\n    }\n  ]\n}"
+        },
+        "description": "id vem como string em vez de inteiro. O erro aponta o caminho do campo mas nunca repete o valor recebido — é o que impede dado sensível de vazar para log ou corpo de erro."
+      }
+    },
+    {
+      "name": "7. Erro - campo obrigatorio ausente (422)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 422', () => pm.response.to.have.status(422));",
+              "pm.test('diz que sku e obrigatorio', () => {",
+              "  const d = pm.response.json().details;",
+              "  pm.expect(d.some(x => x.path === 'sales_items[0].sku' && x.code === 'required')).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/basket", "host": ["{{baseUrl}}"], "path": ["basket"] },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"sales_items\": [\n    {\n      \"id\": 8801,\n      \"name\": \"Dipirona 500mg 20cp\",\n      \"quantity\": 1,\n      \"stock\": 34,\n      \"price\": 12.90,\n      \"ean\": \"7891234567890\"\n    }\n  ]\n}"
+        },
+        "description": "Falta o sku. Uma recusa NÃO apaga a cesta que já estava registrada."
+      }
+    },
+    {
+      "name": "8. Novo cliente zera a cesta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "// Depois deste request, rode o 3 de novo: o log vai dizer 1 item.",
+              "// A cesta do cliente anterior nao sobrevive a troca de atendimento."
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/identification", "host": ["{{baseUrl}}"], "path": ["identification"] },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"store\": { \"cnpj\": \"98765432000110\" },\n  \"customer\": { \"cpf\": \"10987654321\" }\n}"
+        }
+      }
+    },
+    {
+      "name": "9. Guard - requisicao com header Origin (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responde 403', () => pm.response.to.have.status(403));",
+              "pm.test('sem header CORS', () => pm.expect(pm.response.headers.has('Access-Control-Allow-Origin')).to.be.false);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Origin", "value": "http://exemplo.local" }
+        ],
+        "url": { "raw": "{{baseUrl}}/basket", "host": ["{{baseUrl}}"], "path": ["basket"] },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"sales_items\": []\n}"
+        },
+        "description": "O header Origin indica que a chamada veio de um navegador. A API é só para software local do caixa, então é recusada."
+      }
+    },
+    {
+      "name": "10. Content-Type com charset (aceito)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// O servidor compara apenas o media type, ignorando parametros como",
+              "// charset. 'application/json; charset=utf-8' e o default de axios, do",
+              "// HttpClient do .NET e da maioria dos clientes de ERP — recusar isso",
+              "// quebraria a integracao inteira.",
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('corpo e {ok:true}', () => pm.expect(pm.response.json()).to.eql({ ok: true }));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+        "url": { "raw": "{{baseUrl}}/basket", "host": ["{{baseUrl}}"], "path": ["basket"] },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"sales_items\": []\n}"
+        },
+        "description": "O Content-Type pode vir com charset, com ou sem espaço, e em qualquer caixa — o servidor compara só o media type. O que continua sendo recusado com 415 é outro media type (text/plain, por exemplo) ou a ausência do header."
+      }
+    }
+  ]
+}
