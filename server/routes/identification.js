@@ -25,7 +25,6 @@ function handleIdentification(body, res, { store, getMainWindow, logger }) {
   const seller = parseSeller(body);
   store.openSession({ cnpj, cpf, seller });
   respondJson(res, 200, { ok: true });
-  logger.info(`API local: identificação recebida — cnpj=${maskCnpj(cnpj)} cpf=${maskCpf(cpf)}`);
 
   const mainWindow = getMainWindow();
   if (mainWindow && !mainWindow.isDestroyed()) {
