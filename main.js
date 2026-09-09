@@ -337,6 +337,12 @@ app.whenReady().then(() => {
   });
 });
 
+app.on("before-quit", () => {
+  if (!localServer) return;
+  localServer.closeAllConnections?.();
+  localServer.close();
+});
+
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     if (app.isQuiting) {

@@ -223,16 +223,33 @@ describe("integracao /basket - guards de seguranca", () => {
   });
 });
 
-describe("integracao /basket - limitacoes conhecidas do roteamento", () => {
-  it("query string leva a 404", async () => {
-    const res = await request({ port, path: "/basket?origem=pdv", json: { sales_items: [] } });
+describe("integracao /basket - normalizacao da URL", () => {
+  it("aceita query string", async () => {
+    await postIdentificacao(IDENTIFICACAO);
 
-    assert.equal(res.status, 404, "o PDV deve chamar exatamente /basket, sem query string");
+    const res = await request({ port, path: "/basket?origem=pdv", json: { sales_items: [ITEM_A] } });
+
+    assert.equal(res.status, 200);
+    assert.equal(store.getBasket().itemCount, 1);
   });
 
-  it("barra no final leva a 404", async () => {
-    const res = await request({ port, path: "/basket/", json: { sales_items: [] } });
+  it("aceita barra no final", async () => {
+    await postIdentificacao(IDENTIFICACAO);
 
-    assert.equal(res.status, 404, "o PDV deve chamar exatamente /basket, sem barra final");
+    const res = await request({ port, path: "/basket/", json: { sales_items: [ITEM_A] } });
+
+    assert.equal(res.status, 200);
+    assert.equal(store.getBasket().itemCount, 1);
+  });
+
+  it("aceita barra final e query string juntas", async () => {
+    const res = await request({ port, path: "/basket/?origem=pdv", json: { sales_items: [] } });
+
+    assert.equal(res.status, 200);
+  });
+
+  it("continua respondendo 404 em rota desconhecida, com ou sem barra", async () => {
+    assert.equal((await request({ port, path: "/carrinho", json: {} })).status, 404);
+    assert.equal((await request({ port, path: "/carrinho/", json: {} })).status, 404);
   });
 });

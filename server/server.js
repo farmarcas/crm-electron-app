@@ -17,7 +17,14 @@ function createLocalServer({
       const securityStatus = evaluateSecurity(req, allowedHosts);
       if (securityStatus) return respondEmpty(res, securityStatus);
 
-      const handler = routes.get(req.url);
+      let pathname;
+      try {
+        pathname = new URL(req.url, "http://127.0.0.1").pathname.replace(/\/+$/, "") || "/";
+      } catch {
+        return respondEmpty(res, 404);
+      }
+
+      const handler = routes.get(pathname);
       if (!handler) return respondEmpty(res, 404);
       if (req.method !== "POST") return respondEmpty(res, 405);
 
