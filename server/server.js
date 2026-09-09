@@ -20,7 +20,12 @@ function createLocalServer({
       const handler = routes.get(req.url);
       if (!handler) return respondEmpty(res, 404);
       if (req.method !== "POST") return respondEmpty(res, 405);
-      if (req.headers["content-type"] !== "application/json") return respondEmpty(res, 415);
+
+      const mediaType = String(req.headers["content-type"] || "")
+        .split(";")[0]
+        .trim()
+        .toLowerCase();
+      if (mediaType !== "application/json") return respondEmpty(res, 415);
 
       const body = await readJsonBody(req, res, maxBodyBytes);
       if (body === null) return;

@@ -22,7 +22,10 @@ const ICON_PATHS = {
   icns: path.join(__dirname, "assets/icon.icns")
 };
 
-const SUGGESTIONS_URL = process.env.SUGGESTIONS_URL || "https://develop.dmpdjw0btm4j5.amplifyapp.com/";
+const SUGGESTIONS_URL =
+  !app.isPackaged && process.env.SUGGESTIONS_URL
+    ? process.env.SUGGESTIONS_URL
+    : "https://develop.dmpdjw0btm4j5.amplifyapp.com/";
 let mainWindow;
 let tray;
 let localServer;

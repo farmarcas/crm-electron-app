@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "CRM Radar - API local do PDV",
-    "description": "Integração PDV / Orçamento Balcão com o CRM Radar.\n\nPré-requisito: o CRM Radar precisa estar rodando (`npm start`). A API escuta apenas em 127.0.0.1:50505.\n\nOs requests estão numerados e devem ser executados NESTA ORDEM — o Collection Runner conta a história inteira do atendimento, do carrinho vazio até a troca de cliente.\n\nO Content-Type está explícito em todos os requests de propósito: o servidor compara esse header por igualdade exata, então deixar o Postman preencher sozinho pode dar 415. Ver o request 10.",
+    "description": "Integração PDV / Orçamento Balcão com o CRM Radar.\n\nPré-requisito: o CRM Radar precisa estar rodando (`npm start`). A API escuta apenas em 127.0.0.1:50505.\n\nOs requests estão numerados e devem ser executados NESTA ORDEM — o Collection Runner conta a história inteira do atendimento, do carrinho vazio até a troca de cliente.\n\nO Content-Type precisa ser application/json; parâmetros como charset são aceitos (ver request 10). Requisições com o header Origin são recusadas com 403 — a API é só para software local do caixa.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -263,23 +263,19 @@
       }
     },
     {
-      "name": "10. BUG CONHECIDO - Content-Type com charset (415)",
+      "name": "10. Content-Type com charset (aceito)",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "// O servidor compara o Content-Type por igualdade exata em server/security.js.",
-              "// 'application/json; charset=utf-8' e o default de quase todo cliente HTTP",
-              "// (StringContent em .NET, por exemplo) e recebe 415.",
-              "// Vale para /identification e /basket.",
-              "//",
-              "// ESTE TESTE FIXA O COMPORTAMENTO ATUAL. Quando o guard for corrigido,",
-              "// ele falha de proposito e deve virar pm.response.to.have.status(200).",
-              "pm.test('HOJE responde 415 - precisa ser corrigido antes do piloto', () => {",
-              "  pm.response.to.have.status(415);",
-              "});"
+              "// O servidor compara apenas o media type, ignorando parametros como",
+              "// charset. 'application/json; charset=utf-8' e o default de axios, do",
+              "// HttpClient do .NET e da maioria dos clientes de ERP — recusar isso",
+              "// quebraria a integracao inteira.",
+              "pm.test('responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('corpo e {ok:true}', () => pm.expect(pm.response.json()).to.eql({ ok: true }));"
             ]
           }
         }
@@ -293,7 +289,7 @@
           "options": { "raw": { "language": "json" } },
           "raw": "{\n  \"sales_items\": []\n}"
         },
-        "description": "Demonstra o bug que quebra a integração inteira. Se a Alpha7 usar o caminho padrão da linguagem deles, NENHUMA chamada passa."
+        "description": "O Content-Type pode vir com charset, com ou sem espaço, e em qualquer caixa — o servidor compara só o media type. O que continua sendo recusado com 415 é outro media type (text/plain, por exemplo) ou a ausência do header."
       }
     }
   ]

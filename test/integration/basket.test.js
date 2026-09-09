@@ -160,6 +160,32 @@ describe("integracao /basket - guards de seguranca", () => {
     assert.equal(res.status, 415);
   });
 
+  it("recusa sem nenhum Content-Type (415)", async () => {
+    const res = await postBasket({ sales_items: [ITEM_A] }, {
+      headers: { "content-type": null }
+    });
+
+    assert.equal(res.status, 415);
+  });
+
+  for (const contentType of [
+    "application/json; charset=utf-8",
+    "application/json;charset=utf-8",
+    "application/json ; charset=UTF-8",
+    "APPLICATION/JSON"
+  ]) {
+    it(`aceita Content-Type "${contentType}"`, async () => {
+      await postIdentificacao(IDENTIFICACAO);
+
+      const res = await postBasket({ sales_items: [ITEM_A] }, {
+        headers: { "content-type": contentType }
+      });
+
+      assert.equal(res.status, 200);
+      assert.deepEqual(res.body, { ok: true });
+    });
+  }
+
   it("recusa metodo diferente de POST (405)", async () => {
     const res = await request({ port, path: "/basket", method: "GET" });
 
@@ -208,15 +234,5 @@ describe("integracao /basket - limitacoes conhecidas do roteamento", () => {
     const res = await request({ port, path: "/basket/", json: { sales_items: [] } });
 
     assert.equal(res.status, 404, "o PDV deve chamar exatamente /basket, sem barra final");
-  });
-
-  it("DOCUMENTA BUG: charset=utf-8 no Content-Type recebe 415", async () => {
-    await postIdentificacao(IDENTIFICACAO);
-
-    const res = await postBasket({ sales_items: [ITEM_A] }, {
-      headers: { "content-type": "application/json; charset=utf-8" }
-    });
-
-    assert.equal(res.status, 415, "quebra o piloto: corrigir o guard em server/security.js");
   });
 });
