@@ -3,6 +3,7 @@ const config = require("./config");
 const routes = require("./routes");
 const { evaluateSecurity } = require("./security");
 const { respondEmpty, readJsonBody } = require("./http");
+const { isDocsPath, handleDocs } = require("./docs");
 
 function createLocalServer({
   port = config.PORT,
@@ -23,6 +24,8 @@ function createLocalServer({
       } catch {
         return respondEmpty(res, 404);
       }
+
+      if (isDocsPath(pathname)) return handleDocs(req, res, pathname, logger);
 
       const handler = routes.get(pathname);
       if (!handler) return respondEmpty(res, 404);

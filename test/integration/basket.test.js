@@ -136,12 +136,45 @@ describe("integracao /basket - payload invalido", () => {
 });
 
 describe("integracao /basket - guards de seguranca", () => {
-  it("recusa requisicao com header Origin (403)", async () => {
+  it("aceita requisicao com header Origin (Swagger UI servido pela propria API)", async () => {
+    await postIdentificacao(IDENTIFICACAO);
+
     const res = await postBasket({ sales_items: [ITEM_A] }, {
-      headers: { origin: "http://exemplo.local" }
+      headers: { origin: `http://127.0.0.1:${port}` }
     });
 
-    assert.equal(res.status, 403);
+    assert.equal(res.status, 200);
+    assert.equal(store.getBasket().itemCount, 1);
+  });
+
+  it("recusa envio simples de outra origem (text/plain) com 415, sem registrar", async () => {
+    await postIdentificacao(IDENTIFICACAO);
+
+    const res = await postBasket(undefined, {
+      body: JSON.stringify({ sales_items: [ITEM_A] }),
+      headers: { origin: "http://exemplo.local", "content-type": "text/plain" }
+    });
+
+    assert.equal(res.status, 415);
+    assert.equal(store.getBasket(), null);
+  });
+
+  it("nega o preflight OPTIONS com 405, sem nenhum header CORS", async () => {
+    const res = await request({
+      port,
+      path: "/basket",
+      method: "OPTIONS",
+      headers: {
+        origin: "http://exemplo.local",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type",
+        "content-type": null
+      }
+    });
+
+    assert.equal(res.status, 405);
+    const corsHeaders = Object.keys(res.headers).filter((h) => h.startsWith("access-control-"));
+    assert.deepEqual(corsHeaders, []);
   });
 
   it("recusa Host fora da allowlist (403)", async () => {

@@ -1,6 +1,5 @@
 const CHECKS = [
-  { status: 403, fails: (req, allowedHosts) => !allowedHosts.includes(req.headers.host) },
-  { status: 403, fails: (req) => Boolean(req.headers.origin) }
+  { status: 403, fails: (req, allowedHosts) => !allowedHosts.includes(req.headers.host) }
 ];
 
 function evaluateSecurity(req, allowedHosts) {

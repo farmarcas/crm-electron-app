@@ -1,0 +1,440 @@
+openapi: 3.0.3
+info:
+  title: CRM Radar — API local de integração com PDV
+  version: 1.0.0
+  description: |
+    Serviço HTTP do CRM Radar para integração com sistemas de PDV / Orçamento
+    Balcão.
+
+    O serviço roda no próprio computador do caixa e só aceita conexões da própria
+    máquina. Não há credencial, cadastro nem biblioteca para instalar.
+
+    ## Como testar
+
+    - **Documentação interativa:** com o CRM Radar em execução, abra
+      `http://127.0.0.1:50505/docs` e use o botão **Try it out**. As chamadas são
+      reais: uma identificação enviada pela página abre o atendimento no painel.
+    - **Postman:** importe este arquivo em **Import → File**. Cada operação vira
+      uma requisição pronta para enviar.
+
+    ## Regras gerais
+
+    - Use `127.0.0.1`, não `localhost`: o serviço aceita apenas conexões IPv4.
+    - `Content-Type: application/json` é obrigatório. Parâmetros como
+      `; charset=utf-8` são aceitos.
+    - O corpo da requisição é limitado a 64 KiB (65536 bytes).
+    - Barra no final do caminho e parâmetros de consulta são ignorados.
+    - As respostas 403, 404, 405, 413, 415 e 500 **não têm corpo nem
+      `Content-Type`**. Verifique o código de status antes de tentar ler JSON.
+    - Não existe endpoint de verificação de saúde. Chame a operação que você
+      precisa e trate o retorno. **Conexão recusada significa aplicativo fora do
+      ar**: cenário normal, a ser tratado em silêncio, sem alertar o operador.
+    - Nenhuma resposta contém dado de cliente nem sugestão de produto. As
+      sugestões aparecem apenas no painel do CRM Radar.
+
+    ## Regras de integração
+
+    - Chame quando o dado estiver completo, nunca a cada tecla digitada.
+    - Nunca bloqueie a venda esperando a resposta.
+    - Não repita chamadas recusadas por validação (respostas 4xx).
+    - Chame a partir do processo nativo do PDV, não de página em navegador.
+    - Serialize as chamadas de cesta: cada uma substitui a anterior, e duas em
+      paralelo podem chegar fora de ordem.
+servers:
+  - url: http://127.0.0.1:50505
+    description: CRM Radar em execução no computador do caixa
+security: []
+tags:
+  - name: Atendimento
+    description: As duas chamadas feitas pelo PDV durante um atendimento.
+paths:
+  /identification:
+    post:
+      tags:
+        - Atendimento
+      operationId: identificarCliente
+      summary: Identificação — abre o atendimento
+      description: |
+        Enviada uma vez por atendimento, quando o CPF do cliente é capturado.
+        Abre o atendimento e o painel do CRM Radar carrega sozinho.
+
+        - CPF e CNPJ podem ser enviados com ou sem pontuação. A validação conta os
+          dígitos: 14 para o CNPJ, 11 para o CPF. O dígito verificador não é
+          conferido.
+        - O vendedor é opcional. Um campo do vendedor com tipo ou tamanho inválido
+          é descartado, e a identificação segue normalmente.
+        - Uma nova identificação substitui a anterior e descarta a cesta
+          registrada até então.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentificationRequest"
+            examples:
+              simples:
+                summary: CNPJ e CPF sem pontuação
+                x-expected-status: 200
+                value:
+                  store:
+                    cnpj: "12345678000190"
+                  customer:
+                    cpf: "12345678901"
+              comVendedor:
+                summary: Com pontuação e vendedor
+                x-expected-status: 200
+                value:
+                  store:
+                    cnpj: "12.345.678/0001-90"
+                  customer:
+                    cpf: "123.456.789-01"
+                  seller:
+                    id: 42
+                    name: "Ana Souza"
+              cpfIncompleto:
+                summary: CPF com um dígito a menos (recusado)
+                x-expected-status: 422
+                value:
+                  store:
+                    cnpj: "12345678000190"
+                  customer:
+                    cpf: "1234567890"
+      responses:
+        "200":
+          $ref: "#/components/responses/Accepted"
+        "400":
+          $ref: "#/components/responses/InvalidJson"
+        "403":
+          $ref: "#/components/responses/HostNotAllowed"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "422":
+          description: "CNPJ ou CPF ausente, ou com quantidade de dígitos incorreta."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentificationError"
+              example:
+                error: invalid_payload
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /basket:
+    post:
+      tags:
+        - Atendimento
+      operationId: registrarCesta
+      summary: Itens da cesta — registra a cesta em andamento
+      description: |
+        Enviada a cada item inserido na venda, sempre com a cesta inteira naquele
+        momento — não apenas o item novo.
+
+        - Cada chamada substitui a cesta anterior. Os itens não são acumulados: se
+          a primeira chamada envia 1 item e a segunda envia 2, o resultado é 2.
+        - Lista vazia é válida e significa que o operador esvaziou o carrinho.
+        - Campos desconhecidos são ignorados, não causam erro.
+        - Sem atendimento aberto, a chamada é aceita e ignorada em silêncio: a
+          resposta é `200` com `{"ok":true}`, igual ao caso normal. Não é erro e
+          não deve ser repetida.
+        - O limite prático é de tamanho: o corpo não pode passar de 64 KiB, o que
+          costuma ser atingido antes dos 500 itens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BasketRequest"
+            examples:
+              umItem:
+                summary: Cesta com um item
+                x-expected-status: 200
+                value:
+                  sales_items:
+                    - id: 8801
+                      name: "Dipirona 500mg 20cp"
+                      quantity: 1
+                      stock: 34
+                      price: 12.9
+                      ean: "7891234567890"
+                      sku: "DIP500"
+              doisItens:
+                summary: Cesta atualizada com dois itens (substitui a anterior)
+                x-expected-status: 200
+                value:
+                  sales_items:
+                    - id: 8801
+                      name: "Dipirona 500mg 20cp"
+                      quantity: 1
+                      stock: 34
+                      price: 12.9
+                      ean: "7891234567890"
+                      sku: "DIP500"
+                    - id: 4417
+                      name: "Água Micelar 200ml"
+                      quantity: 2
+                      stock: 8
+                      price: 34.5
+                      ean: "7899876543210"
+                      sku: "AGU200"
+              vazia:
+                summary: Cesta esvaziada pelo operador
+                x-expected-status: 200
+                value:
+                  sales_items: []
+              idComoTexto:
+                summary: id enviado como texto (recusado)
+                x-expected-status: 422
+                value:
+                  sales_items:
+                    - id: "8801"
+                      name: "Dipirona 500mg 20cp"
+                      quantity: 1
+                      stock: 34
+                      price: 12.9
+                      ean: "7891234567890"
+                      sku: "DIP500"
+      responses:
+        "200":
+          $ref: "#/components/responses/Accepted"
+        "400":
+          $ref: "#/components/responses/InvalidJson"
+        "403":
+          $ref: "#/components/responses/HostNotAllowed"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "422":
+          description: "Um ou mais campos inválidos. O array details indica quais."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasketValidationError"
+              example:
+                error: invalid_payload
+                details:
+                  - path: "sales_items[0].id"
+                    code: invalid_type
+                    expected: integer
+        "500":
+          $ref: "#/components/responses/InternalError"
+components:
+  schemas:
+    Ok:
+      type: object
+      required:
+        - ok
+      properties:
+        ok:
+          type: boolean
+          enum:
+            - true
+    IdentificationRequest:
+      type: object
+      required:
+        - store
+        - customer
+      properties:
+        store:
+          type: object
+          required:
+            - cnpj
+          properties:
+            cnpj:
+              type: string
+              description: "CNPJ da loja: 14 dígitos, com ou sem pontuação."
+              example: "12345678000190"
+        customer:
+          type: object
+          required:
+            - cpf
+          properties:
+            cpf:
+              type: string
+              description: "CPF do cliente: 11 dígitos, com ou sem pontuação."
+              example: "12345678901"
+        seller:
+          $ref: "#/components/schemas/Seller"
+    Seller:
+      type: object
+      description: |
+        Vendedor responsável pelo atendimento. Opcional; quando enviado, é
+        registrado junto ao atendimento. Um campo inválido é descartado sem
+        recusar a chamada.
+      properties:
+        id:
+          description: "Identificador do vendedor: inteiro, ou texto de 1 a 64 caracteres."
+          oneOf:
+            - type: integer
+            - type: string
+              minLength: 1
+              maxLength: 64
+          example: 42
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Nome do vendedor.
+          example: "Ana Souza"
+    BasketRequest:
+      type: object
+      required:
+        - sales_items
+      properties:
+        sales_items:
+          type: array
+          description: |
+            A cesta inteira naquele momento, não apenas o item novo. Cada chamada
+            substitui a anterior. Lista vazia é válida e significa que o operador
+            esvaziou o carrinho.
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/SalesItem"
+    SalesItem:
+      type: object
+      description: Campos desconhecidos são ignorados, não causam erro.
+      additionalProperties: true
+      required:
+        - id
+        - name
+        - quantity
+        - stock
+        - price
+        - ean
+        - sku
+      properties:
+        id:
+          type: integer
+          description: Identificador do produto.
+          example: 8801
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Nome do produto.
+          example: "Dipirona 500mg 20cp"
+        quantity:
+          type: integer
+          minimum: 0
+          description: Quantidade selecionada.
+          example: 1
+        stock:
+          type: integer
+          description: Estoque atual. Pode ser negativo.
+          example: 34
+        price:
+          type: number
+          minimum: 0
+          description: "Preço unitário. Aceita decimal, com ponto."
+          example: 12.9
+        ean:
+          type: string
+          minLength: 1
+          maxLength: 20
+          description: EAN do produto.
+          example: "7891234567890"
+        sku:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: SKU do produto.
+          example: "DIP500"
+    InvalidJsonError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_json
+    IdentificationError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_payload
+    BasketValidationError:
+      type: object
+      required:
+        - error
+        - details
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_payload
+        details:
+          type: array
+          description: Campos incorretos. Nunca repete o valor recebido.
+          items:
+            $ref: "#/components/schemas/ValidationDetail"
+    ValidationDetail:
+      type: object
+      required:
+        - path
+        - code
+      properties:
+        path:
+          type: string
+          description: Caminho do campo incorreto.
+          example: "sales_items[0].price"
+        code:
+          type: string
+          description: |
+            - `required`: campo obrigatório ausente ou nulo
+            - `invalid_type`: tipo diferente do esperado
+            - `not_an_integer`: número com casas decimais onde se espera inteiro
+            - `too_short`: texto menor que o mínimo
+            - `too_long`: texto maior que o máximo
+            - `out_of_range`: número fora da faixa permitida
+            - `too_many_items`: mais de 500 itens
+            - `not_an_object`: item da lista não é um objeto
+          enum:
+            - required
+            - invalid_type
+            - not_an_integer
+            - too_short
+            - too_long
+            - out_of_range
+            - too_many_items
+            - not_an_object
+        expected:
+          type: string
+          description: O que era esperado.
+          example: number
+  responses:
+    Accepted:
+      description: Aceita.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Ok"
+          example:
+            ok: true
+    InvalidJson:
+      description: O corpo não é JSON válido.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InvalidJsonError"
+          example:
+            error: invalid_json
+    HostNotAllowed:
+      description: "Cabeçalho Host diferente de 127.0.0.1:50505 ou localhost:50505. Sem corpo."
+    MethodNotAllowed:
+      description: "Método diferente de POST. Sem corpo."
+    PayloadTooLarge:
+      description: "Corpo acima de 64 KiB. Sem corpo."
+    UnsupportedMediaType:
+      description: "Content-Type ausente ou diferente de application/json. Sem corpo."
+    InternalError:
+      description: "Falha interna. Sem corpo."

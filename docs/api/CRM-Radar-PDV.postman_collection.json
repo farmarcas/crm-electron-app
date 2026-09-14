@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "CRM Radar - API local do PDV",
-    "description": "Integração PDV / Orçamento Balcão com o CRM Radar.\n\nPré-requisito: o CRM Radar precisa estar rodando (`npm start`). A API escuta apenas em 127.0.0.1:50505.\n\nOs requests estão numerados e devem ser executados NESTA ORDEM — o Collection Runner conta a história inteira do atendimento, do carrinho vazio até a troca de cliente.\n\nO Content-Type precisa ser application/json; parâmetros como charset são aceitos (ver request 10). Requisições com o header Origin são recusadas com 403 — a API é só para software local do caixa.",
+    "description": "Integração PDV / Orçamento Balcão com o CRM Radar.\n\nPré-requisito: o CRM Radar precisa estar em execução no computador. A API escuta apenas em 127.0.0.1:50505.\n\nOs requests estão numerados e devem ser executados NESTA ORDEM — o Collection Runner conta a história inteira do atendimento, do carrinho vazio até a troca de cliente.\n\nO Content-Type precisa ser application/json; parâmetros como charset são aceitos (ver request 10). A mesma API também pode ser explorada pela documentação interativa em http://127.0.0.1:50505/docs.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -67,7 +67,7 @@
           "options": { "raw": { "language": "json" } },
           "raw": "{\n  \"store\": { \"cnpj\": \"12.345.678/0001-90\" },\n  \"customer\": { \"cpf\": \"123.456.789-01\" },\n  \"seller\": { \"id\": 42, \"name\": \"Ana Souza\" }\n}"
         },
-        "description": "Endpoint do Card 1. CPF e CNPJ podem vir com ou sem pontuação. Abre o atendimento e faz o painel carregar sozinho."
+        "description": "CPF e CNPJ podem vir com ou sem pontuação. Abre o atendimento e faz o painel carregar sozinho."
       }
     },
     {
@@ -79,9 +79,7 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('corpo e {ok:true}', () => pm.expect(pm.response.json()).to.eql({ ok: true }));",
-              "// No terminal do npm start deve aparecer:",
-              "//   API local: cesta registrada - 1 item(ns)"
+              "pm.test('corpo e {ok:true}', () => pm.expect(pm.response.json()).to.eql({ ok: true }));"
             ]
           }
         }
@@ -106,9 +104,8 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('responde 200', () => pm.response.to.have.status(200));",
-              "// A resposta e opaca de proposito (nao devolve dado de cliente),",
-              "// entao a prova da SUBSTITUICAO esta no log do terminal:",
-              "//   API local: cesta registrada - 2 item(ns)     <- 2, nao 3"
+              "// A resposta e a mesma com ou sem registro (nao devolve dado de cliente).",
+              "// A API substitui a cesta anterior: o estado final tem 2 itens, nao 3."
             ]
           }
         }
@@ -122,7 +119,7 @@
           "options": { "raw": { "language": "json" } },
           "raw": "{\n  \"sales_items\": [\n    {\n      \"id\": 8801,\n      \"name\": \"Dipirona 500mg 20cp\",\n      \"quantity\": 1,\n      \"stock\": 34,\n      \"price\": 12.90,\n      \"ean\": \"7891234567890\",\n      \"sku\": \"DIP500\"\n    },\n    {\n      \"id\": 4417,\n      \"name\": \"Água Micelar 200ml\",\n      \"quantity\": 2,\n      \"stock\": 8,\n      \"price\": 34.50,\n      \"ean\": \"7899876543210\",\n      \"sku\": \"AGU200\"\n    }\n  ]\n}"
         },
-        "description": "O PDV reenvia a cesta INTEIRA a cada item inserido. O CRM Radar substitui a anterior. O log deve dizer 2 itens, não 3."
+        "description": "O PDV reenvia a cesta INTEIRA a cada item inserido. O CRM Radar substitui a anterior: o resultado é 2 itens, não 3."
       }
     },
     {
@@ -216,7 +213,6 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('responde 200', () => pm.response.to.have.status(200));",
-              "// Depois deste request, rode o 3 de novo: o log vai dizer 1 item.",
               "// A cesta do cliente anterior nao sobrevive a troca de atendimento."
             ]
           }
@@ -234,14 +230,14 @@
       }
     },
     {
-      "name": "9. Guard - requisicao com header Origin (403)",
+      "name": "9. Guard - Content-Type diferente de JSON (415)",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('responde 403', () => pm.response.to.have.status(403));",
+              "pm.test('responde 415', () => pm.response.to.have.status(415));",
               "pm.test('sem header CORS', () => pm.expect(pm.response.headers.has('Access-Control-Allow-Origin')).to.be.false);"
             ]
           }
@@ -249,17 +245,14 @@
       ],
       "request": {
         "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Origin", "value": "http://exemplo.local" }
-        ],
+        "header": [{ "key": "Content-Type", "value": "text/plain" }],
         "url": { "raw": "{{baseUrl}}/basket", "host": ["{{baseUrl}}"], "path": ["basket"] },
         "body": {
           "mode": "raw",
-          "options": { "raw": { "language": "json" } },
+          "options": { "raw": { "language": "text" } },
           "raw": "{\n  \"sales_items\": []\n}"
         },
-        "description": "O header Origin indica que a chamada veio de um navegador. A API é só para software local do caixa, então é recusada."
+        "description": "Só application/json é aceito. Outro media type é recusado com 415, sem corpo — não tente ler JSON dessa resposta."
       }
     },
     {
