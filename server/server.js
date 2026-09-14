@@ -11,7 +11,8 @@ function createLocalServer({
   maxBodyBytes = config.MAX_BODY_BYTES,
   store,
   getMainWindow,
-  logger = console
+  logger = console,
+  resolveDocsAsset
 } = {}) {
   const server = http.createServer(async (req, res) => {
     try {
@@ -25,7 +26,7 @@ function createLocalServer({
         return respondEmpty(res, 404);
       }
 
-      if (isDocsPath(pathname)) return handleDocs(req, res, pathname, logger);
+      if (isDocsPath(pathname)) return handleDocs(req, res, pathname, logger, resolveDocsAsset);
 
       const handler = routes.get(pathname);
       if (!handler) return respondEmpty(res, 404);

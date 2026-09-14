@@ -1,24 +1,3 @@
-<!--
-====================================================================
-INTERNO — REMOVER ESTE BLOCO ANTES DE ENVIAR AO FORNECEDOR
-====================================================================
-
-Pendência aberta: `ean` e `sku` na Chamada 2.
-
-A tabela "Chamada 2" do documento de escopo lista apenas id, name, quantity,
-stock e price — sem ean e sem sku — e o exemplo JSON de lá também não os traz.
-Este manual documenta os sete campos como obrigatórios, que é o que a API faz
-hoje. Se o fornecedor implementar pelo documento de escopo, TODA chamada de
-cesta retorna 422 e nada é registrado.
-
-Fechar por escrito antes de enviar este manual.
-
-Outro ponto a comunicar: o documento de escopo cita os endereços /identificacao
-e /cesta. Os endereços reais são /identification e /basket. Este manual passa a
-ser a fonte da verdade; o documento anterior está desatualizado.
-====================================================================
--->
-
 # Manual de Integração — CRM Radar
 
 Guia para integrar um sistema de PDV / Orçamento Balcão ao CRM Radar.

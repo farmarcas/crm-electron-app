@@ -8,8 +8,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const YAML = require("yaml");
+const { minimatch } = require("minimatch");
 
 const { ITEM_FIELDS, MAX_ITEMS, validateBasket } = require("../../server/basket-schema");
+const { SWAGGER_UI_FILES } = require("../../server/docs");
 const config = require("../../server/config");
 const routes = require("../../server/routes");
 const { createLocalServer } = require("../../server/server");
@@ -23,6 +25,7 @@ const COLLECTION_TEXT = fs.readFileSync(
   path.join(ROOT, "docs", "api", "CRM-Radar-PDV.postman_collection.json"),
   "utf8"
 );
+const MANUAL_TEXT = fs.readFileSync(path.join(ROOT, "docs", "api", "MANUAL-INTEGRACAO-PDV.md"), "utf8");
 const spec = YAML.parse(SPEC_TEXT);
 const { schemas } = spec.components;
 
@@ -209,12 +212,20 @@ describe("documentos para o fornecedor - sem detalhe interno", () => {
     /session-store/i, /basket-schema/i
   ];
 
-  for (const [nome, texto] of [["especificacao", SPEC_TEXT], ["collection do Postman", COLLECTION_TEXT]]) {
+  for (const [nome, texto] of [
+    ["especificacao", SPEC_TEXT],
+    ["collection do Postman", COLLECTION_TEXT],
+    ["manual de integracao", MANUAL_TEXT]
+  ]) {
     it(`${nome} nao expoe detalhe interno`, () => {
       const achados = PROIBIDOS.filter((re) => re.test(texto)).map(String);
       assert.deepEqual(achados, []);
     });
   }
+
+  it("manual de integracao nao tem comentario HTML", () => {
+    assert.ok(!MANUAL_TEXT.includes("<!--"));
+  });
 });
 
 describe("empacotamento", () => {
@@ -234,13 +245,18 @@ describe("empacotamento", () => {
   }
 
   it("nenhuma exclusao atinge os arquivos que o /docs serve", () => {
-    const exclusoes = pkg.build.files.filter((p) => p.startsWith("!node_modules/swagger-ui-dist/"));
-    for (const arquivo of ["swagger-ui-bundle.js", "swagger-ui.css", "package.json"]) {
-      assert.ok(
-        exclusoes.every((p) => !p.includes(arquivo + ",") && !p.includes(arquivo + "}") && !p.endsWith("/" + arquivo)),
-        `${arquivo} nao pode ser excluido`
-      );
-    }
+    const exclusoes = pkg.build.files.filter((p) => p.startsWith("!")).map((p) => p.slice(1));
+    const necessarios = [
+      ...Object.values(SWAGGER_UI_FILES).map((a) => a.file),
+      "package.json",
+      "LICENSE",
+      "NOTICE"
+    ].map((file) => `node_modules/swagger-ui-dist/${file}`);
+
+    const atingidos = necessarios.flatMap((arquivo) =>
+      exclusoes.filter((glob) => minimatch(arquivo, glob, { dot: true })).map((glob) => `${arquivo} <- !${glob}`)
+    );
+    assert.deepEqual(atingidos, []);
   });
 
   it("swagger-ui-dist fixado em versao exata", () => {

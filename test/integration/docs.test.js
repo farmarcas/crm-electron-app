@@ -158,6 +158,68 @@ describe("GET /docs - recusas", () => {
   });
 });
 
+describe("GET /docs - arquivo do Swagger UI ausente no pacote", () => {
+  let semAssets;
+  let portaSemAssets;
+  const erros = [];
+
+  before(async () => {
+    portaSemAssets = await getFreePort();
+    semAssets = createLocalServer({
+      port: portaSemAssets,
+      allowedHosts: [`127.0.0.1:${portaSemAssets}`],
+      store,
+      getMainWindow: () => null,
+      logger: { ...silentLogger, error: (...args) => erros.push(args.join(" ")) },
+      resolveDocsAsset: (file) => {
+        const err = new Error(`Cannot find module 'swagger-ui-dist/${file}'`);
+        err.code = "MODULE_NOT_FOUND";
+        throw err;
+      }
+    });
+    if (!semAssets.listening) {
+      await new Promise((resolve) => semAssets.once("listening", resolve));
+    }
+  });
+
+  after(() => closeServer(semAssets));
+
+  it("o arquivo ausente responde 500 sem corpo e registra o erro", async () => {
+    const res = await request({
+      port: portaSemAssets,
+      path: "/docs/swagger-ui-bundle.js",
+      method: "GET",
+      headers: { "content-type": null }
+    });
+
+    assert.equal(res.status, 500);
+    assert.equal(res.raw, "");
+    assert.ok(erros.some((e) => e.includes("documentação indisponível")));
+  });
+
+  it("a API continua atendendo o PDV", async () => {
+    const ident = await request({
+      port: portaSemAssets,
+      path: "/identification",
+      json: { store: { cnpj: "12345678000190" }, customer: { cpf: "12345678901" } }
+    });
+    assert.equal(ident.status, 200);
+
+    const cesta = await request({
+      port: portaSemAssets,
+      path: "/basket",
+      json: {
+        sales_items: [{
+          id: 8801, name: "Dipirona 500mg 20cp",
+          quantity: 1, stock: 34, price: 12.9, ean: "7891234567890", sku: "DIP500"
+        }]
+      }
+    });
+    assert.equal(cesta.status, 200);
+    assert.equal(store.getBasket().itemCount, 1);
+  });
+});
+
 describe("Try it out - chamadas da mesma origem", () => {
   const IDENTIFICACAO = { store: { cnpj: "12345678000190" }, customer: { cpf: "12345678901" } };
   const ITEM = {

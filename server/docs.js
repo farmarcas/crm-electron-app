@@ -63,13 +63,15 @@ const SWAGGER_UI_FILES = {
   "/docs/swagger-ui.css": { file: "swagger-ui.css", type: "text/css; charset=utf-8" }
 };
 
+const resolveSwaggerUiAsset = (file) => require.resolve(`swagger-ui-dist/${file}`);
+
 function isDocsPath(pathname) {
   return pathname === "/docs" || pathname.startsWith("/docs/");
 }
 
 // Resolvido sob demanda: se um arquivo faltar no pacote, só a documentação
 // falha — a API e o app seguem funcionando.
-function load(pathname) {
+function load(pathname, resolveAsset) {
   if (pathname === "/docs") return { type: "text/html; charset=utf-8", body: PAGE };
   if (pathname === "/docs/init.js") return { type: "text/javascript; charset=utf-8", body: INIT };
   if (pathname === "/docs/openapi.yaml") {
@@ -77,17 +79,17 @@ function load(pathname) {
   }
   const asset = SWAGGER_UI_FILES[pathname];
   if (asset) {
-    return { type: asset.type, body: fs.readFileSync(require.resolve(`swagger-ui-dist/${asset.file}`)) };
+    return { type: asset.type, body: fs.readFileSync(resolveAsset(asset.file)) };
   }
   return null;
 }
 
-function handleDocs(req, res, pathname, logger) {
+function handleDocs(req, res, pathname, logger, resolveAsset = resolveSwaggerUiAsset) {
   if (req.method !== "GET") return respondEmpty(res, 405);
 
   let found;
   try {
-    found = load(pathname);
+    found = load(pathname, resolveAsset);
   } catch (err) {
     logger.error("API local: documentação indisponível —", err.message);
     return respondEmpty(res, 500);
@@ -98,4 +100,4 @@ function handleDocs(req, res, pathname, logger) {
   res.end(found.body);
 }
 
-module.exports = { isDocsPath, handleDocs };
+module.exports = { isDocsPath, handleDocs, SWAGGER_UI_FILES };
