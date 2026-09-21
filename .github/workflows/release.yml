@@ -37,10 +37,17 @@ jobs:
           npm version "$VERSION" --no-git-tag-version || true
       - run: npm run lint
       - run: npm run test
-      - name: Build
+      - name: Build (Windows, signed)
+        if: matrix.os == 'windows-latest'
         run: npm run ${{ matrix.build }} -- --publish=always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ matrix.os == 'windows-latest' && secrets.WIN_CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ matrix.os == 'windows-latest' && secrets.WIN_CSC_PASSWORD || '' }}
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Build (mac/linux, unsigned)
+        if: matrix.os != 'windows-latest'
+        run: npm run ${{ matrix.build }} -- --publish=always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
