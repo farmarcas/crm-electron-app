@@ -80,7 +80,7 @@ git push origin main
 git push origin v$(node -p "require('./package.json').version")
 ```
 
-The workflow (`release.yml`) strips the `v` prefix before passing the version to `npm version` inside the runner, runs `npm run test`, then builds and publishes artefacts to the GitHub Release via `electron-builder --publish=always`. **CI only builds the Windows target** — mac/linux builds must be run locally.
+The workflow (`release.yml`) strips the `v` prefix before passing the version to `npm version` inside the runner, runs `npm run test`, then builds and publishes artefacts to the GitHub Release via `electron-builder --publish=always`. **CI builds all three targets** (`windows-latest`/`dist:win`, `macos-latest`/`dist:mac`, `ubuntu-latest`/`dist:linux`) and each job self-publishes its artefacts to the same tag's GitHub Release. Only the Windows job is code-signed (`WIN_CSC_LINK`/`WIN_CSC_PASSWORD`); the mac `.dmg` and linux `.deb`/`.rpm` ship unsigned (`CSC_IDENTITY_AUTO_DISCOVERY: "false"`, no `CSC_LINK`) since there are no Apple Developer / notarization secrets configured — installing the `.dmg` requires right-click → Open the first time (Gatekeeper "unidentified developer" warning).
 
 **Do not** create bare tags without the `v` prefix (e.g. `0.0.9`) — `electron-builder` would create a second `v0.0.9` tag and trigger a duplicate build.
 
