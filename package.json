@@ -17,6 +17,7 @@
     "dotenv": "^17.4.2",
     "electron": "^31.0.0",
     "electron-builder": "^26.4.0",
+    "minimatch": "^10.2.6",
     "yaml": "^2.9.0"
   },
   "build": {
