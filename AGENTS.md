@@ -27,7 +27,8 @@
 
 ## Build e empacotamento
 - Atualize a lista `build.files` ao adicionar/remover arquivos essenciais.
-- Gere builds apenas pelos scripts `npm run dist:win` e `npm run dist:mac`.
+- Gere builds apenas pelos scripts `npm run dist:win`, `npm run dist:win:legacy` e `npm run dist:mac`.
+- O build legado (`electron-builder.legacy.js`, Windows 7/8/8.1) roda em Electron 22 / Node 16: não use APIs do Node mais novas no processo principal nem em `server/`.
 
 ## Publicando uma nova versão
 

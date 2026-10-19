@@ -8,6 +8,7 @@
     "start": "electron .",
     "build": "electron-builder",
     "dist:win": "electron-builder --win",
+    "dist:win:legacy": "electron-builder --win --config electron-builder.legacy.js",
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "lint": "node -e \"console.log('Lint não configurado')\"",
