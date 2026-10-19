@@ -84,6 +84,12 @@ The workflow (`release.yml`) strips the `v` prefix before passing the version to
 
 **Do not** create bare tags without the `v` prefix (e.g. `0.0.9`) — `electron-builder` would create a second `v0.0.9` tag and trigger a duplicate build.
 
+### Legacy Windows build (Windows 7/8/8.1)
+
+`npm run dist:win:legacy` (also a job in `release.yml`) builds the same code with `electron-builder.legacy.js`, which spreads `package.json`'s `build` and overrides only `electronVersion: "22.3.27"` (last Electron supporting Win 7/8/8.1), `x64` + `ia32`, `artifactName` (`CRM-Radar-Setup-legacy-${version}.exe`) and `publish.channel: "legacy"`. The channel makes it publish `legacy.yml` instead of `latest.yml` and gets written into the embedded `app-update.yml`, so installed legacy apps only follow `legacy.yml` — no channel code in `main.js` (setting `autoUpdater.channel` would also flip `allowDowngrade` on). Do not bump `electron` in `package.json` down for this; the modern build stays on current Electron.
+
+Consequences: the legacy build runs **Node 16** at runtime, while tests run on Node 24 — main-process and `server/` code must avoid newer Node APIs (`fetch`, `structuredClone`, `Array#findLast`, …). The test suite itself cannot run on Node 16 (`node:test` there lacks `before`/`beforeEach`). Production dependencies must keep working on Electron 22 too.
+
 ## Platform notes
 
 - Window panel width is fixed at 400px — only change if explicitly required.

@@ -52,8 +52,17 @@ git push origin v$(node -p "require('./package.json').version")
 ```
 
 O GitHub Actions irá:
-1. Compilar o instalador para Windows, macOS e Linux
-2. Assinar o executável Windows com o certificado configurado nos secrets
-3. Publicar os artefatos e o `latest.yml` no GitHub Release da tag
+1. Compilar o instalador para Windows (atual e legado), macOS e Linux
+2. Assinar os executáveis Windows com o certificado configurado nos secrets
+3. Publicar os artefatos, o `latest.yml` e o `legacy.yml` no GitHub Release da tag
 
 Usuários com o app instalado serão notificados automaticamente pelo auto-updater.
+
+### Build legado (Windows 7/8/8.1)
+
+O Electron atual não roda em Windows 7/8/8.1. Para essas máquinas existe o instalador `CRM-Radar-Setup-legacy-<versão>.exe` (`npm run dist:win:legacy`, configurado em `electron-builder.legacy.js`): mesmo código, mas com Electron 22 e x64 + ia32.
+
+- Ele se atualiza pelo canal `legacy` (`legacy.yml`), e o build atual pelo `latest.yml`. Um nunca é oferecido ao outro.
+- O Electron 22 não recebe mais correções de segurança do Chromium. Use o legado só onde o atual não roda.
+- Em tempo de execução ele usa Node 16: o código do processo principal e de `server/` não pode usar APIs mais novas.
+- A primeira instalação é manual. Se a máquina for atualizada para o Windows 10/11, basta instalar o instalador atual por cima (é o mesmo app).

@@ -19,6 +19,8 @@ jobs:
             build: dist:linux
           - os: windows-latest
             build: dist:win
+          - os: windows-latest
+            build: dist:win:legacy
           - os: macos-latest
             build: dist:mac
     runs-on: ${{ matrix.os }}
